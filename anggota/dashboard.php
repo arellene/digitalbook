@@ -40,6 +40,13 @@ if ($dbOk) {
     if ($r) $totalBaru = (int) mysqli_fetch_assoc($r)['c'];
 }
 
+// ── FITUR BARU (AKUN A): Hitung notifikasi belum dibaca untuk badge topbar ──
+$unreadNotif = 0;
+if (!$isGuest && $dbOk) {
+    $r = mysqli_query($conn, "SELECT COUNT(*) c FROM notifikasi WHERE user_id = {$_SESSION['user_id']} AND is_read = 0");
+    if ($r) $unreadNotif = (int) mysqli_fetch_assoc($r)['c'];
+}
+
 $featured = [];
 if ($dbOk) {
     $sql = "SELECT b.id, b.judul, COALESCE(b.penulis,b.pengarang) AS pengarang, b.kategori,
@@ -128,7 +135,7 @@ function icon($name, $size = 16, $style = '') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beranda — Pojok Baca</title>
+    <title>Beranda — Pojok Baca (v.A)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/anggota/dashboard.css">
@@ -152,6 +159,17 @@ function icon($name, $size = 16, $style = '') {
             </div>
         </div>
         <div class="topbar-right">
+            <!-- FITUR BARU (AKUN A): Badge Notifikasi -->
+            <?php if (!$isGuest): ?>
+            <a href="notifikasi.php" class="topbar-bell" style="position:relative;margin-right:14px;display:inline-flex;align-items:center;">
+                <?= icon('bell', 20) ?>
+                <?php if ($unreadNotif > 0): ?>
+                <span style="position:absolute;top:-4px;right:-6px;background:#e05c5c;color:#fff;font-size:10px;line-height:1;border-radius:50%;padding:3px 5px;">
+                    <?= $unreadNotif ?>
+                </span>
+                <?php endif; ?>
+            </a>
+            <?php endif; ?>
             <div class="user-chip">
                 <div class="chip-ava">
                     <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
