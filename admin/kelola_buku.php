@@ -122,7 +122,7 @@ $active_menu = 'buku';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kelola Buku — Pojok Baca (v.A)</title>
+  <title>Kelola Buku — Pojok Baca</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/admin/dashboard.css">
@@ -266,6 +266,8 @@ $active_menu = 'buku';
               <th>Tahun</th>
               <th>Dibaca</th>
               <th>Rating</th>
+              <!-- FITUR BARU (AKUN B): Kolom Stok -->
+              <th>Stok</th>
               <th>Ditambahkan</th>
               <th>Aksi</th>
             </tr>
@@ -276,6 +278,7 @@ $active_menu = 'buku';
             $empty = true;
             while ($row = mysqli_fetch_assoc($result_buku)):
               $empty = false;
+              $stok_val = (int) ($row['stok'] ?? 0);
             ?>
             <tr>
               <td style="color:var(--text3)"><?php echo $no++; ?></td>
@@ -308,6 +311,13 @@ $active_menu = 'buku';
                   <span class="rating-cell">⭐ <?php echo number_format($row['rating_ulasan'],1); ?></span>
                 <?php else: ?>
                   <span style="color:var(--text3)">—</span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if ($stok_val <= 2): ?>
+                  <span class="badge badge-danger" title="Stok menipis">&#9888; <?php echo $stok_val; ?></span>
+                <?php else: ?>
+                  <span style="color:var(--text2)"><?php echo $stok_val; ?></span>
                 <?php endif; ?>
               </td>
               <td style="color:var(--text2)"><?php echo date('d M Y', strtotime($row['created_at'])); ?></td>
@@ -378,7 +388,7 @@ $active_menu = 'buku';
 
 </main>
 
-<!-- ========== MODAL TAMBAH / EDIT ========== -->
+<!-- MODAL TAMBAH / EDIT -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal" id="modalBuku">
     <div class="modal-header">
