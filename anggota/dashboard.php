@@ -40,18 +40,18 @@ if ($dbOk) {
     if ($r) $totalBaru = (int) mysqli_fetch_assoc($r)['c'];
 }
 
-// ── FITUR BARU (AKUN A): Hitung notifikasi belum dibaca untuk badge topbar ──
+// ── FITUR (AKUN A): Hitung notifikasi belum dibaca untuk badge topbar ──
 $unreadNotif = 0;
 if (!$isGuest && $dbOk) {
     $r = mysqli_query($conn, "SELECT COUNT(*) c FROM notifikasi WHERE user_id = {$_SESSION['user_id']} AND is_read = 0");
     if ($r) $unreadNotif = (int) mysqli_fetch_assoc($r)['c'];
 }
 
-// ── FITUR BARU (AKUN B): Ambil daftar buku yang sedang dibaca beserta progress ──
+// ── FITUR (AKUN B): Ambil daftar buku yang sedang dibaca beserta progress ──
 $progressList = [];
 if (!$isGuest && $dbOk) {
     $qProgress = mysqli_query($conn, "
-        SELECT r.id, r.progress, b.judul, b.cover_emoji
+        SELECT r.id, r.progress, b.judul, b.cover_emoji, b.cover_img
         FROM riwayat_baca r JOIN buku b ON r.id_buku = b.id
         WHERE r.id_anggota = {$_SESSION['user_id']} AND r.status = 'sedang_dibaca'
         ORDER BY r.tanggal_akses DESC LIMIT 3
@@ -171,7 +171,7 @@ function icon($name, $size = 16, $style = '') {
             </div>
         </div>
         <div class="topbar-right">
-            <!-- FITUR BARU (AKUN A): Badge Notifikasi -->
+            <!-- FITUR (AKUN A): Badge Notifikasi -->
             <?php if (!$isGuest): ?>
             <a href="notifikasi.php" class="topbar-bell" style="position:relative;margin-right:14px;display:inline-flex;align-items:center;">
                 <?= icon('bell', 20) ?>
@@ -275,21 +275,34 @@ function icon($name, $size = 16, $style = '') {
         </div>
         <?php endif; ?>
 
-        <!-- FITUR BARU (AKUN B): PROGRESS MEMBACA -->
+        <!-- FITUR (AKUN B): PROGRESS MEMBACA -->
         <?php if (!$isGuest && !empty($progressList)): ?>
         <div class="anim anim-d3">
             <div class="section-head">
                 <h3><?= icon('book-reader', 18) ?> Lanjutkan Membaca</h3>
                 <a href="riwayat.php" class="see-all">Lihat Semua <?= icon('arrow-right', 14) ?></a>
             </div>
-            <?php foreach ($progressList as $p): ?>
-            <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px 18px;margin-bottom:10px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                    <span><?= htmlspecialchars($p['cover_emoji'] ?? '📚') ?> <?= htmlspecialchars($p['judul']) ?></span>
-                    <span><?= $p['progress'] ?>%</span>
+            <?php foreach ($progressList as $i => $p):
+                $c = $covers[$i % count($covers)];
+            ?>
+            <div style="display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.04);border-radius:12px;padding:12px 16px;margin-bottom:10px;">
+                <div style="width:44px;height:60px;border-radius:8px;overflow:hidden;flex-shrink:0;background:linear-gradient(160deg,<?= $c[0] ?>,<?= $c[1] ?>,<?= $c[2] ?>);display:flex;align-items:center;justify-content:center;">
+                    <?php if (!empty($p['cover_img'])): ?>
+                        <img src="../<?= htmlspecialchars($p['cover_img']) ?>"
+                             alt="<?= htmlspecialchars($p['judul']) ?>"
+                             style="width:100%;height:100%;object-fit:cover;display:block;">
+                    <?php else: ?>
+                        <span style="font-size:1.4rem;"><?= htmlspecialchars($p['cover_emoji'] ?? '📚') ?></span>
+                    <?php endif; ?>
                 </div>
-                <div style="background:rgba(255,255,255,.1);border-radius:6px;height:6px;">
-                    <div style="width:<?= $p['progress'] ?>%;background:var(--accent2, #c9a84c);height:6px;border-radius:6px;"></div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($p['judul']) ?></span>
+                        <span style="color:var(--accent2, #c9a84c);font-weight:600;flex-shrink:0;margin-left:8px;"><?= $p['progress'] ?>%</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,.1);border-radius:6px;height:6px;">
+                        <div style="width:<?= $p['progress'] ?>%;background:var(--accent2, #c9a84c);height:6px;border-radius:6px;"></div>
+                    </div>
                 </div>
             </div>
             <?php endforeach; ?>
