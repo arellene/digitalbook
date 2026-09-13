@@ -1,0 +1,409 @@
+﻿/* ═══════════════════════════════════════════════════════════════
+   Pojok Baca — Wishlist CSS
+   Letakkan di: assets/css/anggota/wishlist.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── FILTER BAR ────────────────────────────────────────────────── */
+.filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+}
+.search-wrap svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+}
+.search-input {
+    width: 100%;
+    padding: 9px 12px 9px 38px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Poppins', sans-serif;
+    outline: none;
+    transition: border-color .2s;
+}
+.search-input:focus {
+    border-color: rgba(99,102,241,.45);
+}
+.search-input::placeholder { color: var(--muted); }
+
+.filter-select {
+    padding: 9px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Poppins', sans-serif;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+.filter-select:focus { border-color: rgba(99,102,241,.45); }
+
+.filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: opacity .15s;
+}
+.filter-btn:hover { opacity: .85; }
+
+.clear-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 9px 14px;
+    background: rgba(255,255,255,.06);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .15s, color .15s;
+}
+.clear-filter:hover { background: rgba(255,255,255,.1); color: var(--text); }
+
+/* ── ALERT / FLASH MESSAGE ─────────────────────────────────────── */
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+}
+.alert-success {
+    background: rgba(74,168,160,.12);
+    border: 1px solid rgba(74,168,160,.25);
+    color: var(--teal);
+}
+.alert-error {
+    background: rgba(224,92,92,.1);
+    border: 1px solid rgba(224,92,92,.2);
+    color: var(--red);
+}
+
+/* ── WISHLIST GRID ─────────────────────────────────────────────── */
+.wishlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+.wl-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    gap: 0;
+    overflow: hidden !important;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.wl-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 26px rgba(0,0,0,.35);
+    border-color: rgba(99,102,241,.3);
+}
+
+/* ── WISHLIST CARD COVER ───────────────────────────────────────── */
+.wl-cover {
+    width: 90px;
+    min-width: 90px;
+    min-height: 130px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden !important;
+}
+.wl-cover img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    max-width: none !important;
+}
+.wl-cover .cover-placeholder {
+    font-size: 2rem;
+    position: relative;
+    z-index: 1;
+}
+.wl-cover .cover-rating {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(4px);
+    border-radius: 5px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #fbbf24;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+
+/* ── WISHLIST CARD BODY ────────────────────────────────────────── */
+.wl-body {
+    flex: 1;
+    padding: 14px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+.wl-genre {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--accent);
+}
+.wl-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.wl-author {
+    font-size: 11.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.wl-desc {
+    font-size: 11.5px;
+    color: #64748b;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.wl-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 6px;
+}
+.wl-reads {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.wl-date {
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-left: auto;
+}
+
+/* ── WISHLIST CARD ACTIONS ─────────────────────────────────────── */
+.wl-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+}
+.wl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity .15s, background .15s;
+    border: none;
+}
+.wl-btn-read {
+    background: rgba(99,102,241,.15);
+    color: var(--accent);
+    border: 1px solid rgba(99,102,241,.25);
+}
+.wl-btn-read:hover { background: rgba(99,102,241,.25); }
+.wl-btn-del {
+    background: rgba(224,92,92,.1);
+    color: var(--red);
+    border: 1px solid rgba(224,92,92,.2);
+}
+.wl-btn-del:hover { background: rgba(224,92,92,.2); }
+
+/* ── RESULT BADGE ──────────────────────────────────────────────── */
+.result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px 12px;
+}
+.result-badge strong { color: var(--text); }
+
+/* ── EMPTY STATE ───────────────────────────────────────────────── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    gap: 14px;
+}
+.empty-icon {
+    width: 72px; height: 72px;
+    background: rgba(99,102,241,.1);
+    border: 1px solid rgba(99,102,241,.15);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent);
+}
+.empty-state h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+}
+.empty-state p {
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 320px;
+}
+
+/* ── CONFIRM DELETE MODAL ──────────────────────────────────────── */
+.modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    backdrop-filter: blur(3px);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 28px 24px;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    animation: fadeUp .25s ease;
+}
+.modal-icon {
+    width: 48px; height: 48px;
+    background: rgba(224,92,92,.12);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red);
+    margin-bottom: 16px;
+}
+.modal-box h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+.modal-box p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 22px;
+    line-height: 1.6;
+}
+.modal-actions {
+    display: flex;
+    gap: 10px;
+}
+.modal-actions a,
+.modal-actions button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    transition: opacity .15s;
+}
+.modal-actions .btn-cancel {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.modal-actions .btn-confirm {
+    background: rgba(224,92,92,.15);
+    color: var(--red);
+    border: 1px solid rgba(224,92,92,.25);
+}
+.modal-actions a:hover,
+.modal-actions button:hover { opacity: .8; }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .wishlist-grid { grid-template-columns: 1fr; }
+    .filter-bar { flex-direction: column; align-items: stretch; }
+    .search-wrap { min-width: unset; }
+}
+@media (max-width: 480px) {
+    .wl-cover { width: 80px; min-width: 80px; }
+}

@@ -1,0 +1,10 @@
+{
+    "nama_app": "Pojok Baca",
+    "email_app": "admin@gmail.com",
+    "deskripsi": "Platform perpustakaan digital Pojok Baca — baca eBook kapan saja, di mana saja.",
+    "batas_akses": 25,
+    "maks_buku": 5,
+    "status_default": "aktif",
+    "auto_expired": 1,
+    "logo": "logo_app.png"
+}
