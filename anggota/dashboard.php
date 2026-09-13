@@ -47,6 +47,18 @@ if (!$isGuest && $dbOk) {
     if ($r) $unreadNotif = (int) mysqli_fetch_assoc($r)['c'];
 }
 
+// ── FITUR BARU (AKUN B): Ambil daftar buku yang sedang dibaca beserta progress ──
+$progressList = [];
+if (!$isGuest && $dbOk) {
+    $qProgress = mysqli_query($conn, "
+        SELECT r.id, r.progress, b.judul, b.cover_emoji
+        FROM riwayat_baca r JOIN buku b ON r.id_buku = b.id
+        WHERE r.id_anggota = {$_SESSION['user_id']} AND r.status = 'sedang_dibaca'
+        ORDER BY r.tanggal_akses DESC LIMIT 3
+    ");
+    if ($qProgress) while ($row = mysqli_fetch_assoc($qProgress)) $progressList[] = $row;
+}
+
 $featured = [];
 if ($dbOk) {
     $sql = "SELECT b.id, b.judul, COALESCE(b.penulis,b.pengarang) AS pengarang, b.kategori,
@@ -135,7 +147,7 @@ function icon($name, $size = 16, $style = '') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beranda — Pojok Baca (v.A)</title>
+    <title>Beranda — Pojok Baca</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/anggota/dashboard.css">
@@ -260,6 +272,27 @@ function icon($name, $size = 16, $style = '') {
             <a href="../auth/register.php" class="btn-primary">
                 <?= icon('user-plus', 16) ?> Daftar Sekarang
             </a>
+        </div>
+        <?php endif; ?>
+
+        <!-- FITUR BARU (AKUN B): PROGRESS MEMBACA -->
+        <?php if (!$isGuest && !empty($progressList)): ?>
+        <div class="anim anim-d3">
+            <div class="section-head">
+                <h3><?= icon('book-reader', 18) ?> Lanjutkan Membaca</h3>
+                <a href="riwayat.php" class="see-all">Lihat Semua <?= icon('arrow-right', 14) ?></a>
+            </div>
+            <?php foreach ($progressList as $p): ?>
+            <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px 18px;margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                    <span><?= htmlspecialchars($p['cover_emoji'] ?? '📚') ?> <?= htmlspecialchars($p['judul']) ?></span>
+                    <span><?= $p['progress'] ?>%</span>
+                </div>
+                <div style="background:rgba(255,255,255,.1);border-radius:6px;height:6px;">
+                    <div style="width:<?= $p['progress'] ?>%;background:var(--accent2, #c9a84c);height:6px;border-radius:6px;"></div>
+                </div>
+            </div>
+            <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
