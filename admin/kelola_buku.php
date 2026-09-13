@@ -74,6 +74,15 @@ $where = "WHERE 1=1";
 if ($search)     $where .= " AND (b.judul LIKE '%$search%' OR b.penulis LIKE '%$search%')";
 if ($filter_kat) $where .= " AND b.kategori = '$filter_kat'";
 
+// ─── FITUR BARU (AKUN A): Urutkan hasil daftar buku ──────────────────────────
+$sort = $_GET['sort'] ?? 'terbaru';
+$order_by = match ($sort) {
+    'judul_az'    => 'b.judul ASC',
+    'rating'      => 'rating_ulasan DESC',
+    'paling_baca' => 'b.total_baca DESC',
+    default       => 'b.created_at DESC',
+};
+
 $total_rows = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM buku b $where"))['c'];
 $total_pages = max(1, ceil($total_rows / $per_page));
 
@@ -84,7 +93,7 @@ $result_buku = mysqli_query($conn, "
     LEFT JOIN ulasan u ON u.buku_id = b.id
     $where
     GROUP BY b.id
-    ORDER BY b.created_at DESC
+    ORDER BY $order_by
     LIMIT $per_page OFFSET $offset
 ");
 
@@ -113,7 +122,7 @@ $active_menu = 'buku';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kelola Buku — Pojok Baca</title>
+  <title>Kelola Buku — Pojok Baca (v.A)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/admin/dashboard.css">
@@ -206,8 +215,17 @@ $active_menu = 'buku';
             </option>
             <?php endforeach; ?>
           </select>
+
+          <!-- FITUR BARU (AKUN A): Dropdown Urutkan -->
+          <select name="sort" class="filter-select" onchange="document.getElementById('filterForm').submit()">
+            <option value="terbaru" <?php echo $sort === 'terbaru' ? 'selected' : ''; ?>>Terbaru</option>
+            <option value="judul_az" <?php echo $sort === 'judul_az' ? 'selected' : ''; ?>>Judul A-Z</option>
+            <option value="rating" <?php echo $sort === 'rating' ? 'selected' : ''; ?>>Rating Tertinggi</option>
+            <option value="paling_baca" <?php echo $sort === 'paling_baca' ? 'selected' : ''; ?>>Paling Banyak Dibaca</option>
+          </select>
+
           <button type="submit" class="btn-primary">Cari</button>
-          <?php if ($search || $filter_kat): ?>
+          <?php if ($search || $filter_kat || $sort !== 'terbaru'): ?>
           <a href="kelola_buku.php" class="btn-ghost">Reset</a>
           <?php endif; ?>
         </form>
@@ -330,7 +348,7 @@ $active_menu = 'buku';
       <?php if ($total_pages > 1): ?>
       <div class="pagination">
         <?php if ($page > 1): ?>
-          <a href="?page=<?php echo $page-1; ?>&search=<?php echo urlencode($search); ?>&kategori=<?php echo urlencode($filter_kat); ?>" class="page-btn">&#8592;</a>
+          <a href="?page=<?php echo $page-1; ?>&search=<?php echo urlencode($search); ?>&kategori=<?php echo urlencode($filter_kat); ?>&sort=<?php echo urlencode($sort); ?>" class="page-btn">&#8592;</a>
         <?php endif; ?>
 
         <?php
@@ -339,7 +357,7 @@ $active_menu = 'buku';
         if ($start > 1) echo '<span class="page-dots">…</span>';
         for ($i = $start; $i <= $end; $i++):
         ?>
-          <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&kategori=<?php echo urlencode($filter_kat); ?>"
+          <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&kategori=<?php echo urlencode($filter_kat); ?>&sort=<?php echo urlencode($sort); ?>"
              class="page-btn <?php echo $i === $page ? 'active' : ''; ?>">
             <?php echo $i; ?>
           </a>
@@ -347,7 +365,7 @@ $active_menu = 'buku';
         if ($end < $total_pages) echo '<span class="page-dots">…</span>'; ?>
 
         <?php if ($page < $total_pages): ?>
-          <a href="?page=<?php echo $page+1; ?>&search=<?php echo urlencode($search); ?>&kategori=<?php echo urlencode($filter_kat); ?>" class="page-btn">&#8594;</a>
+          <a href="?page=<?php echo $page+1; ?>&search=<?php echo urlencode($search); ?>&kategori=<?php echo urlencode($filter_kat); ?>&sort=<?php echo urlencode($sort); ?>" class="page-btn">&#8594;</a>
         <?php endif; ?>
       </div>
       <?php endif; ?>
