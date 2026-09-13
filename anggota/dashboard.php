@@ -51,7 +51,7 @@ if (!$isGuest && $dbOk) {
 $progressList = [];
 if (!$isGuest && $dbOk) {
     $qProgress = mysqli_query($conn, "
-        SELECT r.id, r.progress, b.judul, b.cover_emoji, b.cover_img
+        SELECT r.id, r.progress, b.id AS buku_id, b.judul, b.cover_emoji, b.cover_img
         FROM riwayat_baca r JOIN buku b ON r.id_buku = b.id
         WHERE r.id_anggota = {$_SESSION['user_id']} AND r.status = 'sedang_dibaca'
         ORDER BY r.tanggal_akses DESC LIMIT 3
@@ -285,7 +285,12 @@ function icon($name, $size = 16, $style = '') {
             <?php foreach ($progressList as $i => $p):
                 $c = $covers[$i % count($covers)];
             ?>
-            <div style="display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.04);border-radius:12px;padding:12px 16px;margin-bottom:10px;">
+            <a href="detail_ebook.php?id=<?= (int) $p['buku_id'] ?>"
+               style="text-decoration:none;color:inherit;display:flex;gap:14px;align-items:center;
+                      background:#1c2333;border:1px solid rgba(255,255,255,.08);border-radius:12px;
+                      padding:12px 16px;margin-bottom:10px;transition:background .15s,border-color .15s;"
+               onmouseover="this.style.background='#232b3d';this.style.borderColor='rgba(255,255,255,.16)';"
+               onmouseout="this.style.background='#1c2333';this.style.borderColor='rgba(255,255,255,.08)';">
                 <div style="width:44px;height:60px;border-radius:8px;overflow:hidden;flex-shrink:0;background:linear-gradient(160deg,<?= $c[0] ?>,<?= $c[1] ?>,<?= $c[2] ?>);display:flex;align-items:center;justify-content:center;">
                     <?php if (!empty($p['cover_img'])): ?>
                         <img src="../<?= htmlspecialchars($p['cover_img']) ?>"
@@ -304,7 +309,7 @@ function icon($name, $size = 16, $style = '') {
                         <div style="width:<?= $p['progress'] ?>%;background:var(--accent2, #c9a84c);height:6px;border-radius:6px;"></div>
                     </div>
                 </div>
-            </div>
+            </a>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
