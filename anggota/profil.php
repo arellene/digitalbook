@@ -32,7 +32,7 @@ if (empty($user)) {
         'no_telepon'   => '',
         'alamat'       => '',
         'tgl_daftar'   => date('Y-m-d'),
-        'foto'         => '',
+        'foto_profil'  => '',
     ];
 }
 
@@ -117,6 +117,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         } else {
             $successMsg = 'Profil berhasil diperbarui. (mode demo)';
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // ACTION: update_foto (upload/ganti foto profil)
+    // ──────────────────────────────────────────────────────────────────────────
+    if ($_POST['action'] === 'update_foto') {
+        if (empty($_FILES['foto_profil']) || $_FILES['foto_profil']['error'] === UPLOAD_ERR_NO_FILE) {
+            $errorMsg = 'Silakan pilih file foto terlebih dahulu.';
+        } elseif ($_FILES['foto_profil']['error'] !== UPLOAD_ERR_OK) {
+            $errorMsg = 'Terjadi kesalahan saat mengunggah file.';
+        } else {
+            $file       = $_FILES['foto_profil'];
+            $maxSize    = 2 * 1024 * 1024; // 2 MB
+            $allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
+            $allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
+
+            $ext      = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeReal = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+
+            if ($file['size'] > $maxSize) {
+                $errorMsg = 'Ukuran foto maksimal 2MB.';
+            } elseif (!in_array($ext, $allowedExt, true) || !in_array($mimeReal, $allowedMime, true)) {
+                $errorMsg = 'Format foto harus JPG, PNG, atau WEBP.';
+            } else {
+                $uploadDir = __DIR__ . '/../uploads/profil/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+
+                $namaFile = 'user_' . $uid . '_' . time() . '.' . $ext;
+                $tujuan   = $uploadDir . $namaFile;
+
+                if (move_uploaded_file($file['tmp_name'], $tujuan)) {
+                    if ($dbOk) {
+                        // Hapus foto lama dari server (kalau ada dan bukan default)
+                        if (!empty($user['foto_profil'])) {
+                            $fotoLama = $uploadDir . $user['foto_profil'];
+                            if (is_file($fotoLama)) {
+                                @unlink($fotoLama);
+                            }
+                        }
+
+                        $namaFileEsc = mysqli_real_escape_string($conn, $namaFile);
+                        $ok = mysqli_query($conn, "UPDATE users SET foto_profil='$namaFileEsc' WHERE id = $uid");
+
+                        if ($ok) {
+                            $user['foto_profil'] = $namaFile;
+                            $successMsg = 'Foto profil berhasil diperbarui.';
+
+                            kirimNotif(
+                                $conn,
+                                $uid,
+                                'success',
+                                'Foto Profil Diperbarui',
+                                'Foto profil kamu berhasil diganti.'
+                            );
+                        } else {
+                            @unlink($tujuan);
+                            $errorMsg = 'Gagal menyimpan foto ke database.';
+                        }
+                    } else {
+                        $user['foto_profil'] = $namaFile;
+                        $successMsg = 'Foto profil berhasil diperbarui. (mode demo)';
+                    }
+                } else {
+                    $errorMsg = 'Gagal mengunggah foto. Silakan coba lagi.';
+                }
+            }
         }
     }
 
@@ -241,7 +312,14 @@ $tglDaftar    = !empty($user['tgl_daftar'])
         </div>
         <div class="topbar-right">
             <div class="user-chip">
-                <div class="chip-ava"><?= $namaInisial ?></div>
+                <div class="chip-ava" style="overflow:hidden;">
+                    <?php if (!empty($user['foto_profil']) && is_file(__DIR__ . '/../uploads/profil/' . $user['foto_profil'])): ?>
+                        <img src="../uploads/profil/<?= htmlspecialchars($user['foto_profil']) ?>?v=<?= time() ?>"
+                             alt="" style="width:100%;height:100%;object-fit:cover;">
+                    <?php else: ?>
+                        <?= $namaInisial ?>
+                    <?php endif; ?>
+                </div>
                 <div>
                     <div class="chip-name"><?= htmlspecialchars(explode(' ', $user['nama_lengkap'])[0]) ?></div>
                     <div class="chip-role">Member</div>
@@ -315,9 +393,26 @@ $tglDaftar    = !empty($user['tgl_daftar'])
 
             <!-- ── KARTU IDENTITAS ── -->
             <div class="card identity-card">
-                <div class="identity-avatar">
-                    <?= $namaInisial ?>
-                </div>
+                <form method="POST" enctype="multipart/form-data" id="formFoto">
+                    <input type="hidden" name="action" value="update_foto">
+                    <div class="identity-avatar" style="position:relative;overflow:hidden;">
+                        <?php if (!empty($user['foto_profil']) && is_file(__DIR__ . '/../uploads/profil/' . $user['foto_profil'])): ?>
+                            <img src="../uploads/profil/<?= htmlspecialchars($user['foto_profil']) ?>?v=<?= time() ?>"
+                                 alt="Foto profil"
+                                 style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                        <?php else: ?>
+                            <?= $namaInisial ?>
+                        <?php endif; ?>
+
+                        <label for="inputFoto" style="position:absolute;bottom:0;left:0;right:0;
+                               background:rgba(0,0,0,.55);color:#fff;font-size:11px;text-align:center;
+                               padding:4px 0;cursor:pointer;">
+                            <?= icon('user-edit', 12) ?> Ganti Foto
+                        </label>
+                    </div>
+                    <input type="file" name="foto_profil" id="inputFoto" accept=".jpg,.jpeg,.png,.webp"
+                           style="display:none;" onchange="document.getElementById('formFoto').submit();">
+                </form>
                 <div class="identity-name"><?= htmlspecialchars($user['nama_lengkap']) ?></div>
                 <div class="identity-username">@<?= htmlspecialchars($user['username']) ?></div>
                 <span class="identity-badge">
