@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk — Pojok Baca</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --indigo-900: #1e1b4b;
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Poppins', sans-serif;
             background: var(--canvas);
             color: var(--ink);
             min-height: 100vh;
@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             display: inline-flex;
             align-items: center;
             gap: 12px;
-            font-family: 'Fraunces', serif;
+            font-family: 'Poppins', sans-serif;
             font-size: 22px;
             font-weight: 600;
             letter-spacing: .2px;
@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             max-width: 420px;
         }
         .stage-copy h1 {
-            font-family: 'Fraunces', serif;
+            font-family: 'Poppins', sans-serif;
             font-weight: 500;
             font-size: clamp(2.1rem, 3.4vw, 2.9rem);
             line-height: 1.14;
@@ -177,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         .stage-footer .stat b {
             display: block;
-            font-family: 'Fraunces', serif;
+            font-family: 'Poppins', sans-serif;
             font-size: 22px;
             font-weight: 500;
             color: #fff;
@@ -202,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             margin-bottom: 30px;
         }
         .panel-head h2 {
-            font-family: 'Fraunces', serif;
+            font-family: 'Poppins', sans-serif;
             font-weight: 500;
             font-size: 1.9rem;
             letter-spacing: -.01em;
