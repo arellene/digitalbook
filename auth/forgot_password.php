@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/database.php';
+require_once '../config/mailer.php';
 
 $error   = '';
 $success = '';
@@ -36,9 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      . "Kode ini berlaku selama 10 menit.\n\n"
                      . "Jika kamu tidak meminta reset password, abaikan email ini.\n\n"
                      . "— Tim Pojok Baca";
-            $headers = "From: no-reply@pojokbaca.local\r\nContent-Type: text/plain; charset=UTF-8";
-
-            $terkirim = @mail($email, $subject, $message, $headers);
+            $terkirim = kirimEmailOtp($email, $userRow['nama_lengkap'], $subject, $message);
 
             $_SESSION['reset_email'] = $email;
             unset($_SESSION['reset_verified'], $_SESSION['dev_otp_preview']);

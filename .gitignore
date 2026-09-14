@@ -1,3 +1,5 @@
 .env
 catatan-pribadi.txt
 cache/
+vendor/
+config/mailer.php

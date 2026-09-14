@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/database.php';
+require_once '../config/mailer.php';
 
 if (empty($_SESSION['reset_email'])) {
     header('Location: forgot_password.php');
@@ -27,8 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $subject = 'Kode OTP Baru - Pojok Baca';
         $message = "Kode OTP baru kamu: $otp\nBerlaku selama 10 menit.\n\n— Tim Pojok Baca";
-        $headers = "From: no-reply@pojokbaca.local\r\nContent-Type: text/plain; charset=UTF-8";
-        $terkirim = @mail($email, $subject, $message, $headers);
+        $terkirim = kirimEmailOtp($email, '', $subject, $message);
 
         if (!$terkirim) {
             $_SESSION['dev_otp_preview'] = $otp;

@@ -1,0 +1,39 @@
+<?php
+// config/mailer.php.example
+// COPY file ini jadi "mailer.php" (hapus .example), lalu isi kredensial asli kamu di bawah.
+// File "mailer.php" yang asli TIDAK di-push ke Git (sudah ada di .gitignore),
+// supaya App Password Gmail kamu nggak bocor ke publik.
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+function kirimEmailOtp(string $toEmail, string $toName, string $subject, string $body): bool
+{
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'GANTI_DENGAN_EMAIL_GMAIL_KAMU';
+        $mail->Password   = 'GANTI_DENGAN_APP_PASSWORD_16_DIGIT';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587;
+        $mail->CharSet    = 'UTF-8';
+
+        $mail->setFrom($mail->Username, 'Pojok Baca');
+        $mail->addAddress($toEmail, $toName);
+
+        $mail->isHTML(false);
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log('Gagal kirim email OTP: ' . $mail->ErrorInfo);
+        return false;
+    }
+}
