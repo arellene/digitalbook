@@ -105,7 +105,7 @@ if (!$buku) {
 $ulasanSaya = null;
 if (!$isGuest && $dbOk) {
     $r = mysqli_query($conn,
-        "SELECT u.*, us.nama_lengkap AS nama_user
+        "SELECT u.*, us.nama_lengkap AS nama_user, us.foto_profil AS foto_user
            FROM ulasan u
            JOIN users us ON us.id = u.user_id
           WHERE u.buku_id = $buku_id AND u.user_id = $user_id
@@ -117,7 +117,7 @@ if (!$isGuest && $dbOk) {
 $semuaUlasan = [];
 if ($dbOk) {
     $r = mysqli_query($conn,
-        "SELECT u.*, us.nama_lengkap AS nama_user
+        "SELECT u.*, us.nama_lengkap AS nama_user, us.foto_profil AS foto_user
            FROM ulasan u
            JOIN users us ON us.id = u.user_id
           WHERE u.buku_id = $buku_id
@@ -368,12 +368,8 @@ $active_menu = 'katalog'; // sorot Katalog di sidebar
         </div>
         <div class="topbar-right">
             <div class="user-chip">
-                <div class="chip-ava" style="overflow:hidden;">
-                    <?php if (!empty($user['foto_profil']) && is_file(__DIR__ . '/../uploads/profil/' . $user['foto_profil'])): ?>
-                        <img src="../uploads/profil/<?= htmlspecialchars($user['foto_profil']) ?>?v=<?= time() ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
-                    <?php else: ?>
-                        <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
-                    <?php endif; ?>
+                <div class="chip-ava">
+                    <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
                 </div>
                 <div>
                     <div class="chip-name"><?= htmlspecialchars(explode(' ', $user['nama_lengkap'])[0]) ?></div>
@@ -548,7 +544,13 @@ $active_menu = 'katalog'; // sorot Katalog di sidebar
                     <?php endif; ?>
 
                     <div class="ulasan-header">
-                        <div class="u-avatar"><?= htmlspecialchars($inisial) ?></div>
+                        <div class="u-avatar" style="overflow:hidden;">
+                            <?php if (!empty($u['foto_user']) && is_file(__DIR__ . '/../uploads/profil/' . $u['foto_user'])): ?>
+                                <img src="../uploads/profil/<?= htmlspecialchars($u['foto_user']) ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
+                            <?php else: ?>
+                                <?= htmlspecialchars($inisial) ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="u-meta">
                             <div class="u-nama"><?= htmlspecialchars($u['nama_user']) ?></div>
                             <div class="u-tgl"><?= $tgl ?></div>
