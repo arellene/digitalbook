@@ -390,7 +390,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <div class="stage-footer">
                 <div class="stage-stats">
-                    <div class="stat"><b>1.2K+</b>Judul eBook</div>
+                    <div class="stat"><b>1.2K+</b>Free eBook</div>
                     <div class="stat"><b>24/7</b>Akses baca</div>
                 </div>
                 <div>Perpustakaan Digital</div>
