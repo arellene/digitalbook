@@ -35,7 +35,7 @@ if ($bookId > 0 && $dbOk) {
                    COALESCE(tahun, tahun_terbit) AS tahun_terbit,
                    COALESCE(deskripsi, '') AS deskripsi,
                    cover_img, cover_emoji,
-                   rating, total_baca, file_pdf, isbn, bahasa, halaman
+                   rating, total_baca, file_pdf, isbn, bahasa, halaman, stok
             FROM buku
             WHERE id = $bookId
             LIMIT 1";
@@ -56,6 +56,55 @@ if (!$isNotFound && $dbOk) {
 
     $k = mysqli_query($conn, "SELECT id FROM koleksi WHERE id_anggota = $uid AND id_buku = $bookId LIMIT 1");
     $inKoleksi = $k && mysqli_num_rows($k) > 0;
+}
+
+// ── FITUR BARU: Statistik copy, antrian, dipinjam, ukuran file ───────────────
+$fileSizeLabel  = '—';
+$totalCopy      = 0;
+$tersediaCopy   = 0;
+$totalDibaca    = 0;
+$antrian        = 0;
+$sedangDipinjam = 0;
+$ulasanList     = [];
+
+if (!$isNotFound && $dbOk) {
+    // Ukuran file PDF (dibaca langsung dari disk)
+    if (!empty($book['file_pdf'])) {
+        $filePath = '../' . ltrim($book['file_pdf'], '/');
+        if (file_exists($filePath)) {
+            $bytes = filesize($filePath);
+            $fileSizeLabel = $bytes >= 1048576
+                ? number_format($bytes / 1048576, 1) . ' MB'
+                : number_format($bytes / 1024, 1) . ' KB';
+        }
+    }
+
+    $totalCopy   = (int) ($book['stok'] ?? 0);
+    $totalDibaca = (int) ($book['total_baca'] ?? 0);
+
+    // Sedang dipinjam = jumlah riwayat_baca dengan status sedang_dibaca untuk buku ini
+    $rDipinjam = mysqli_query($conn, "
+        SELECT COUNT(*) AS c FROM riwayat_baca
+        WHERE id_buku = $bookId AND status = 'sedang_dibaca'
+    ");
+    $sedangDipinjam = $rDipinjam ? (int) mysqli_fetch_assoc($rDipinjam)['c'] : 0;
+    $tersediaCopy   = max(0, $totalCopy - $sedangDipinjam);
+
+    // Antrian = jumlah anggota yang memasukkan buku ini ke wishlist (proxy antrian minat baca)
+    $rAntrian = mysqli_query($conn, "
+        SELECT COUNT(*) AS c FROM wishlist WHERE id_buku = $bookId
+    ");
+    $antrian = $rAntrian ? (int) mysqli_fetch_assoc($rAntrian)['c'] : 0;
+
+    // Daftar ulasan
+    $rUlasan = mysqli_query($conn, "
+        SELECT u.rating, u.komentar, u.created_at, us.nama_lengkap
+        FROM ulasan u
+        JOIN users us ON us.id = u.user_id
+        WHERE u.buku_id = $bookId
+        ORDER BY u.created_at DESC
+    ");
+    if ($rUlasan) while ($row = mysqli_fetch_assoc($rUlasan)) $ulasanList[] = $row;
 }
 
 // ── Flash message dari aksi wishlist/koleksi ─────────────────────────────────
@@ -210,11 +259,6 @@ function coverPath($cover) {
             align-items: center;
             gap: 8px;
         }
-        .detail-desc {
-            color: var(--text);
-            line-height: 1.8;
-            max-width: 760px;
-        }
         .detail-actions {
             display: flex;
             flex-wrap: wrap;
@@ -249,39 +293,16 @@ function coverPath($cover) {
             font-size: 13.5px;
             font-weight: 600;
             text-decoration: none;
-            cursor: pointer;
-            border: none;
-            transition: background .2s, transform .15s, box-shadow .2s;
+            border: 1px solid var(--border);
+            color: var(--text);
+            background: var(--surface);
         }
-        .btn-wishlist {
-            background: rgba(99,102,241,.15);
-            color: #a5b4fc;
-            border: 1px solid rgba(99,102,241,.35);
-        }
-        .btn-wishlist:hover {
-            background: rgba(99,102,241,.28);
-            transform: translateY(-2px);
-        }
-        .btn-wishlist.active {
-            background: rgba(99,102,241,.3);
-            color: #c7d2fe;
-            border-color: rgba(99,102,241,.6);
-        }
-        .btn-koleksi {
-            background: rgba(20,184,166,.12);
-            color: #5eead4;
-            border: 1px solid rgba(20,184,166,.35);
-        }
-        .btn-koleksi:hover {
-            background: rgba(20,184,166,.25);
-            transform: translateY(-2px);
-        }
+        .btn-wishlist.active,
         .btn-koleksi.active {
-            background: rgba(20,184,166,.25);
-            color: #99f6e4;
-            border-color: rgba(20,184,166,.6);
+            background: rgba(99,102,241,.14);
+            border-color: var(--accent);
+            color: var(--accent);
         }
-        /* ── Tombol Ulasan ── */
         .btn-ulasan {
             display: inline-flex;
             align-items: center;
@@ -291,48 +312,166 @@ function coverPath($cover) {
             font-size: 13.5px;
             font-weight: 600;
             text-decoration: none;
-            cursor: pointer;
-            transition: background .2s, transform .15s;
-            background: rgba(201,168,76,.12);
-            color: #e8c76a;
-            border: 1px solid rgba(201,168,76,.3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            background: var(--surface);
         }
-        .btn-ulasan:hover {
-            background: rgba(201,168,76,.22);
-            transform: translateY(-2px);
+
+        /* ── FITUR BARU: Info Stats Bar (gaya iPusnas) ── */
+        .info-stats-bar {
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+            padding: 20px 24px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
         }
-        /* ── Flash message ── */
-        .flash-msg {
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(99,102,241,.12);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .stat-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .3px;
+        }
+        .stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        /* ── FITUR BARU: Info Meta Row (dibaca / antrian / dipinjam) ── */
+        .info-meta-row {
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+            padding: 18px 24px;
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+            background: var(--surface);
+            margin-top: -1px;
+        }
+        .meta-item {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 13px 18px;
-            border-radius: 10px;
+            color: var(--muted);
+        }
+        .meta-item svg { color: var(--accent); flex-shrink: 0; }
+        .meta-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+        .meta-value {
             font-size: 13.5px;
-            margin-bottom: 18px;
-            animation: slideDown .3s ease;
+            font-weight: 700;
+            color: var(--text);
         }
-        .flash-msg a { color: inherit; font-weight: 700; text-decoration: underline; }
-        .flash-success { background: rgba(76,175,80,.15); border: 1px solid rgba(76,175,80,.35); color: #81c784; }
-        .flash-info    { background: rgba(99,102,241,.14); border: 1px solid rgba(99,102,241,.3); color: #a5b4fc; }
-        .flash-error   { background: rgba(224,92,92,.14);  border: 1px solid rgba(224,92,92,.3);  color: #f87171; }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-8px); }
-            to   { opacity: 1; transform: none; }
+
+        /* ── FITUR BARU: Tabs Deskripsi / Detail / Ulasan ── */
+        .detail-tabs {
+            display: flex;
+            gap: 28px;
+            margin-top: 20px;
+            padding: 0 4px;
+            border-bottom: 1px solid var(--border);
         }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 2px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-family: inherit;
+        }
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .tab-panel { display: none; padding: 20px 4px; }
+        .tab-panel.active { display: block; }
+        .tab-panel .detail-desc { color: var(--text); line-height: 1.8; max-width: 760px; }
+
+        .detail-table { width: 100%; border-collapse: collapse; max-width: 640px; }
+        .detail-table td {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            font-size: 13.5px;
+        }
+        .detail-table td:first-child { color: var(--muted); width: 180px; }
+
+        .ulasan-item {
+            display: flex;
+            gap: 14px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .ulasan-item:last-child { border-bottom: none; }
+        .ulasan-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+        .ulasan-body { flex: 1; min-width: 0; }
+        .ulasan-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            color: var(--text);
+        }
+        .ulasan-rating-label { font-size: 12px; color: var(--muted); font-weight: 400; }
+        .ulasan-stars { font-size: 12px; letter-spacing: 1px; }
+        .ulasan-date { font-size: 11.5px; color: var(--muted); margin: 3px 0 8px; }
+        .ulasan-text { margin: 0 0 6px; font-size: 13.5px; color: var(--text); line-height: 1.6; }
+        .ulasan-reply {
+            font-size: 12.5px;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 700;
+        }
+        .empty-ulasan { color: var(--muted); font-size: 13.5px; padding: 8px 0; }
     </style>
 </head>
 <body>
 
-<?php $isGuest = false; $active_menu = 'katalog'; ?>
-<?php require_once '../includes/anggota/sidebar.php'; ?>
+<?php include '../includes/anggota/sidebar.php'; ?>
 
 <div class="main">
     <div class="topbar">
         <div class="topbar-left">
-            <button class="menu-btn" onclick="toggleSidebar()">
-                <?= icon('bars', 20) ?>
-            </button>
+            <button class="menu-btn" onclick="toggleSidebar()"><?= icon('bars', 20) ?></button>
             <div>
                 <div class="topbar-title">Detail eBook</div>
                 <div class="topbar-breadcrumb">Pojok Baca / <span>Detail eBook</span></div>
@@ -397,9 +536,6 @@ function coverPath($cover) {
                         <span><?= icon('book-open', 14) ?> <?= htmlspecialchars($book['halaman']) ?> halaman</span>
                         <?php endif; ?>
                     </div>
-                    <div class="detail-desc">
-                        <?= nl2br(htmlspecialchars($book['deskripsi'] ?: 'Deskripsi belum tersedia.')) ?>
-                    </div>
                     <div class="detail-actions">
                         <a href="baca.php?id=<?= $book['id'] ?>" class="btn-primary">
                             <?= icon('eye', 14) ?> Baca Sekarang
@@ -416,9 +552,6 @@ function coverPath($cover) {
                             <?= icon('layers', 15) ?>
                             <?= $inKoleksi ? 'Di Koleksi' : 'Koleksi' ?>
                         </a>
-                        <a href="ulasan.php?buku_id=<?= $bookId ?>" class="btn-ulasan">
-                            <?= icon('message-sq', 15) ?> Ulasan
-                        </a>
                         <a href="katalog_ebook.php" class="btn-secondary">
                             <?= icon('arrow-left', 14) ?> Kembali ke Katalog
                         </a>
@@ -432,6 +565,107 @@ function coverPath($cover) {
                     <?php endif; ?>
                 </div>
             </div>
+
+            <!-- FITUR BARU: Info Stats Bar -->
+            <div class="info-stats-bar">
+                <div class="stat-item">
+                    <div class="stat-icon"><?= icon('download', 18) ?></div>
+                    <div>
+                        <div class="stat-label">File Size</div>
+                        <div class="stat-value"><?= htmlspecialchars($fileSizeLabel) ?></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon"><?= icon('layers', 18) ?></div>
+                    <div>
+                        <div class="stat-label">Total Copy</div>
+                        <div class="stat-value"><?= number_format($totalCopy) ?></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon"><?= icon('check-circle', 18) ?></div>
+                    <div>
+                        <div class="stat-label">Tersedia Copy</div>
+                        <div class="stat-value"><?= number_format($tersediaCopy) ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FITUR BARU: Info Meta Row -->
+            <div class="info-meta-row">
+                <div class="meta-item">
+                    <?= icon('eye', 18) ?>
+                    <div>
+                        <div class="meta-label">Telah dibaca Oleh</div>
+                        <div class="meta-value"><?= number_format($totalDibaca) ?> Pengguna</div>
+                    </div>
+                </div>
+                <div class="meta-item">
+                    <?= icon('history', 18) ?>
+                    <div>
+                        <div class="meta-label">Antrian</div>
+                        <div class="meta-value"><?= number_format($antrian) ?> Pengguna</div>
+                    </div>
+                </div>
+                <div class="meta-item">
+                    <?= icon('lock', 18) ?>
+                    <div>
+                        <div class="meta-label">Sedang Dipinjam Oleh</div>
+                        <div class="meta-value"><?= number_format($sedangDipinjam) ?> Pengguna</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FITUR BARU: Tabs Deskripsi / Detail / Ulasan -->
+            <div class="detail-tabs">
+                <button class="tab-btn active" data-tab="deskripsi">Deskripsi</button>
+                <button class="tab-btn" data-tab="detail">Detail</button>
+                <button class="tab-btn" data-tab="ulasan">Ulasan <?= count($ulasanList) ? '(' . count($ulasanList) . ')' : '' ?></button>
+            </div>
+
+            <div class="tab-panel active" id="tab-deskripsi">
+                <div class="detail-desc">
+                    <?= nl2br(htmlspecialchars($book['deskripsi'] ?: 'Deskripsi belum tersedia.')) ?>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab-detail">
+                <table class="detail-table">
+                    <tr><td>ISBN</td><td><?= htmlspecialchars($book['isbn'] ?: '-') ?></td></tr>
+                    <tr><td>Bahasa</td><td><?= htmlspecialchars($book['bahasa'] ?: '-') ?></td></tr>
+                    <tr><td>Jumlah Halaman</td><td><?= $book['halaman'] ? htmlspecialchars($book['halaman']) . ' halaman' : '-' ?></td></tr>
+                    <tr><td>Kategori</td><td><?= htmlspecialchars($book['kategori'] ?: '-') ?></td></tr>
+                    <tr><td>Tahun Terbit</td><td><?= htmlspecialchars($book['tahun_terbit'] ?: '-') ?></td></tr>
+                    <tr><td>Penulis</td><td><?= htmlspecialchars($book['pengarang'] ?: '-') ?></td></tr>
+                </table>
+            </div>
+
+            <div class="tab-panel" id="tab-ulasan">
+                <?php if (empty($ulasanList)): ?>
+                    <p class="empty-ulasan">Belum ada ulasan untuk eBook ini.</p>
+                <?php else: ?>
+                    <?php foreach ($ulasanList as $u): ?>
+                    <div class="ulasan-item">
+                        <div class="ulasan-avatar"><?= strtoupper(substr($u['nama_lengkap'], 0, 1)) ?></div>
+                        <div class="ulasan-body">
+                            <div class="ulasan-head">
+                                <strong><?= htmlspecialchars($u['nama_lengkap']) ?></strong>
+                                <span class="ulasan-rating-label">Memberikan rating</span>
+                                <span class="ulasan-stars">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <?= $i <= (int) $u['rating'] ? '⭐' : '☆' ?>
+                                    <?php endfor; ?>
+                                </span>
+                            </div>
+                            <div class="ulasan-date"><?= date('d F Y - H.i', strtotime($u['created_at'])) ?> WIB</div>
+                            <p class="ulasan-text"><?= nl2br(htmlspecialchars($u['komentar'] ?: '')) ?></p>
+                            <a href="#" class="ulasan-reply">Balas</a>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
         <?php endif; ?>
     </div>
 </div>
@@ -445,6 +679,16 @@ function coverPath($cover) {
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('overlay').classList.remove('show');
     }
+
+    // ── FITUR BARU: Switch Tab Deskripsi / Detail / Ulasan ──
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+    });
 </script>
 </body>
 </html>
