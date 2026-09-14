@@ -30,8 +30,13 @@ if (!$isGuest && $_sbUid > 0 && isset($conn) && $conn instanceof mysqli) {
 
     <!-- USER -->
     <div class="sidebar-user">
-        <div class="user-ava">
-            <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
+        <div class="user-ava" style="overflow:hidden;">
+            <?php if (!$isGuest && !empty($user['foto_profil']) && is_file(__DIR__ . '/../../uploads/profil/' . $user['foto_profil'])): ?>
+                <img src="../uploads/profil/<?= htmlspecialchars($user['foto_profil']) ?>?v=<?= time() ?>"
+                     alt="" style="width:100%;height:100%;object-fit:cover;">
+            <?php else: ?>
+                <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
+            <?php endif; ?>
         </div>
         <div>
             <div class="user-name"><?= htmlspecialchars($user['nama_lengkap']) ?></div>
