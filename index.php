@@ -17,6 +17,11 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'guest') {
 }
 
 $error = '';
+$flashSuccess = '';
+if (!empty($_SESSION['flash_login'])) {
+    $flashSuccess = $_SESSION['flash_login'];
+    unset($_SESSION['flash_login']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
@@ -231,6 +236,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             border-radius: 10px;
             margin-bottom: 20px;
         }
+        .alert-success {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+            font-size: 13px;
+            padding: 11px 14px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
 
         .field { margin-bottom: 16px; }
         .field label {
@@ -390,7 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <div class="stage-footer">
                 <div class="stage-stats">
-                    <div class="stat"><b>1.2K+</b>Free eBook</div>
+                    <div class="stat"><b>Free</b>eBook</div>
                     <div class="stat"><b>24/7</b>Akses baca</div>
                 </div>
                 <div>Perpustakaan Digital</div>
@@ -405,6 +422,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <h2>Selamat datang kembali</h2>
                     <p>Belum punya akun? <a href="auth/register.php">Daftar di sini</a></p>
                 </div>
+
+                <?php if ($flashSuccess): ?>
+                <div class="alert-success">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    <?= htmlspecialchars($flashSuccess) ?>
+                </div>
+                <?php endif; ?>
 
                 <?php if ($error): ?>
                 <div class="alert-error">
@@ -432,7 +456,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
 
                     <div class="row-between">
-                        <a href="#">Lupa kata sandi?</a>
+                        <a href="auth/forgot_password.php">Lupa kata sandi?</a>
                     </div>
 
                     <button type="submit" class="btn-masuk">Masuk</button>
