@@ -63,7 +63,6 @@ $fileSizeLabel  = '—';
 $totalCopy      = 0;
 $tersediaCopy   = 0;
 $totalDibaca    = 0;
-$antrian        = 0;
 $sedangDipinjam = 0;
 $ulasanList     = [];
 
@@ -83,18 +82,13 @@ if (!$isNotFound && $dbOk) {
     $totalDibaca = (int) ($book['total_baca'] ?? 0);
 
     // Sedang dipinjam = jumlah riwayat_baca dengan status sedang_dibaca untuk buku ini
+    // (dipakai untuk menghitung Tersedia Copy, tidak ditampilkan terpisah)
     $rDipinjam = mysqli_query($conn, "
         SELECT COUNT(*) AS c FROM riwayat_baca
         WHERE id_buku = $bookId AND status = 'sedang_dibaca'
     ");
     $sedangDipinjam = $rDipinjam ? (int) mysqli_fetch_assoc($rDipinjam)['c'] : 0;
     $tersediaCopy   = max(0, $totalCopy - $sedangDipinjam);
-
-    // Antrian = jumlah anggota yang memasukkan buku ini ke wishlist (proxy antrian minat baca)
-    $rAntrian = mysqli_query($conn, "
-        SELECT COUNT(*) AS c FROM wishlist WHERE id_buku = $bookId
-    ");
-    $antrian = $rAntrian ? (int) mysqli_fetch_assoc($rAntrian)['c'] : 0;
 
     // Daftar ulasan
     $rUlasan = mysqli_query($conn, "
@@ -598,20 +592,6 @@ function coverPath($cover) {
                     <div>
                         <div class="meta-label">Telah dibaca Oleh</div>
                         <div class="meta-value"><?= number_format($totalDibaca) ?> Pengguna</div>
-                    </div>
-                </div>
-                <div class="meta-item">
-                    <?= icon('history', 18) ?>
-                    <div>
-                        <div class="meta-label">Antrian</div>
-                        <div class="meta-value"><?= number_format($antrian) ?> Pengguna</div>
-                    </div>
-                </div>
-                <div class="meta-item">
-                    <?= icon('lock', 18) ?>
-                    <div>
-                        <div class="meta-label">Sedang Dipinjam Oleh</div>
-                        <div class="meta-value"><?= number_format($sedangDipinjam) ?> Pengguna</div>
                     </div>
                 </div>
             </div>
