@@ -117,7 +117,7 @@ if (!$isNotFound && $dbOk) {
 
     // Daftar ulasan
     $rUlasan = mysqli_query($conn, "
-        SELECT u.rating, u.komentar, u.created_at, u.user_id, us.nama_lengkap
+        SELECT u.rating, u.komentar, u.created_at, u.user_id, us.nama_lengkap, us.foto_profil
         FROM ulasan u
         JOIN users us ON us.id = u.user_id
         WHERE u.buku_id = $bookId
@@ -766,7 +766,14 @@ function coverPath($cover) {
                         $mine = ((int) $u['user_id'] === $uid);
                     ?>
                     <div class="ulasan-item">
-                        <div class="ulasan-avatar"><?= strtoupper(substr($u['nama_lengkap'], 0, 1)) ?></div>
+                        <div class="ulasan-avatar" style="overflow:hidden;">
+                            <?php if (!empty($u['foto_profil']) && is_file(__DIR__ . '/../uploads/profil/' . $u['foto_profil'])): ?>
+                                <img src="../uploads/profil/<?= htmlspecialchars($u['foto_profil']) ?>?v=<?= time() ?>"
+                                     alt="" style="width:100%;height:100%;object-fit:cover;">
+                            <?php else: ?>
+                                <?= strtoupper(substr($u['nama_lengkap'], 0, 1)) ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="ulasan-body">
                             <div class="ulasan-head">
                                 <strong><?= htmlspecialchars($u['nama_lengkap']) ?></strong>
