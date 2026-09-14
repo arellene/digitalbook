@@ -47,6 +47,44 @@ if ($bookId > 0 && $dbOk) {
 
 $isNotFound = empty($book);
 
+// ── FITUR BARU: Proses submit / hapus ulasan ─────────────────────────────────
+$ulasanPesan = '';
+$ulasanTipe  = '';
+if (!$isNotFound && $dbOk && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_ulasan'])) {
+    if ($_POST['aksi_ulasan'] === 'simpan') {
+        $ratingBaru   = isset($_POST['rating']) ? (int) $_POST['rating'] : 0;
+        $komentarBaru = isset($_POST['komentar']) ? trim($_POST['komentar']) : '';
+
+        if ($ratingBaru < 1 || $ratingBaru > 5) {
+            $ulasanPesan = 'Rating harus antara 1–5 bintang.';
+            $ulasanTipe  = 'error';
+        } else {
+            $komentarEsc = mysqli_real_escape_string($conn, $komentarBaru);
+            $sql = "INSERT INTO ulasan (buku_id, user_id, rating, komentar)
+                    VALUES ($bookId, $uid, $ratingBaru, " . ($komentarBaru ? "'$komentarEsc'" : "NULL") . ")
+                    ON DUPLICATE KEY UPDATE
+                        rating = VALUES(rating),
+                        komentar = VALUES(komentar),
+                        created_at = NOW()";
+            if (mysqli_query($conn, $sql)) {
+                $ulasanPesan = 'Ulasan berhasil disimpan!';
+                $ulasanTipe  = 'success';
+            } else {
+                $ulasanPesan = 'Gagal menyimpan ulasan.';
+                $ulasanTipe  = 'error';
+            }
+        }
+    } elseif ($_POST['aksi_ulasan'] === 'hapus') {
+        if (mysqli_query($conn, "DELETE FROM ulasan WHERE buku_id = $bookId AND user_id = $uid")) {
+            $ulasanPesan = 'Ulasan kamu berhasil dihapus.';
+            $ulasanTipe  = 'success';
+        } else {
+            $ulasanPesan = 'Gagal menghapus ulasan.';
+            $ulasanTipe  = 'error';
+        }
+    }
+}
+
 // ── Cek status wishlist & koleksi user untuk buku ini ────────────────────────
 $inWishlist = false;
 $inKoleksi  = false;
@@ -60,10 +98,7 @@ if (!$isNotFound && $dbOk) {
 
 // ── FITUR BARU: Statistik copy, antrian, dipinjam, ukuran file ───────────────
 $fileSizeLabel  = '—';
-$totalCopy      = 0;
-$tersediaCopy   = 0;
 $totalDibaca    = 0;
-$sedangDipinjam = 0;
 $ulasanList     = [];
 
 if (!$isNotFound && $dbOk) {
@@ -78,27 +113,24 @@ if (!$isNotFound && $dbOk) {
         }
     }
 
-    $totalCopy   = (int) ($book['stok'] ?? 0);
     $totalDibaca = (int) ($book['total_baca'] ?? 0);
-
-    // Sedang dipinjam = jumlah riwayat_baca dengan status sedang_dibaca untuk buku ini
-    // (dipakai untuk menghitung Tersedia Copy, tidak ditampilkan terpisah)
-    $rDipinjam = mysqli_query($conn, "
-        SELECT COUNT(*) AS c FROM riwayat_baca
-        WHERE id_buku = $bookId AND status = 'sedang_dibaca'
-    ");
-    $sedangDipinjam = $rDipinjam ? (int) mysqli_fetch_assoc($rDipinjam)['c'] : 0;
-    $tersediaCopy   = max(0, $totalCopy - $sedangDipinjam);
 
     // Daftar ulasan
     $rUlasan = mysqli_query($conn, "
-        SELECT u.rating, u.komentar, u.created_at, us.nama_lengkap
+        SELECT u.rating, u.komentar, u.created_at, u.user_id, us.nama_lengkap
         FROM ulasan u
         JOIN users us ON us.id = u.user_id
         WHERE u.buku_id = $bookId
         ORDER BY u.created_at DESC
     ");
     if ($rUlasan) while ($row = mysqli_fetch_assoc($rUlasan)) $ulasanList[] = $row;
+}
+
+// ── FITUR BARU: Ulasan milik user yang sedang login (untuk prefill form) ────
+$ulasanSaya = null;
+if (!$isNotFound && $dbOk) {
+    $rSaya = mysqli_query($conn, "SELECT rating, komentar FROM ulasan WHERE buku_id = $bookId AND user_id = $uid LIMIT 1");
+    $ulasanSaya = $rSaya ? mysqli_fetch_assoc($rSaya) : null;
 }
 
 // ── Flash message dari aksi wishlist/koleksi ─────────────────────────────────
@@ -456,6 +488,85 @@ function coverPath($cover) {
             font-weight: 700;
         }
         .empty-ulasan { color: var(--muted); font-size: 13.5px; padding: 8px 0; }
+
+        /* ── FITUR BARU: Form Tulis Ulasan ── */
+        .ulasan-form-box {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            background: rgba(148,163,184,.04);
+        }
+        .ulasan-form-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+        .rating-picker { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 4px; margin-bottom: 12px; }
+        .rating-picker input { display: none; }
+        .rating-picker label {
+            font-size: 26px;
+            color: var(--border);
+            cursor: pointer;
+            transition: color .15s;
+        }
+        .rating-picker label.lit,
+        .rating-picker input:checked ~ label,
+        .rating-picker label:hover,
+        .rating-picker label:hover ~ label { color: #fbbf24; }
+        .ulasan-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg, #10131a);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 13.5px;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+        .ulasan-form-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-ulasan-save {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-ulasan-hapus {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: #ef4444;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .ulasan-form-msg {
+            font-size: 12.5px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .ulasan-form-msg.success { background: rgba(34,197,94,.12); color: #4ade80; }
+        .ulasan-form-msg.error { background: rgba(239,68,68,.12); color: #f87171; }
+        .mine-tag {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: var(--accent);
+            background: rgba(99,102,241,.12);
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-left: 6px;
+        }
     </style>
 </head>
 <body>
@@ -569,20 +680,6 @@ function coverPath($cover) {
                         <div class="stat-value"><?= htmlspecialchars($fileSizeLabel) ?></div>
                     </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-icon"><?= icon('layers', 18) ?></div>
-                    <div>
-                        <div class="stat-label">Total Copy</div>
-                        <div class="stat-value"><?= number_format($totalCopy) ?></div>
-                    </div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-icon"><?= icon('check-circle', 18) ?></div>
-                    <div>
-                        <div class="stat-label">Tersedia Copy</div>
-                        <div class="stat-value"><?= number_format($tersediaCopy) ?></div>
-                    </div>
-                </div>
             </div>
 
             <!-- FITUR BARU: Info Meta Row -->
@@ -621,15 +718,52 @@ function coverPath($cover) {
             </div>
 
             <div class="tab-panel" id="tab-ulasan">
+                <!-- FITUR BARU: Form Tulis / Edit Ulasan -->
+                <div class="ulasan-form-box">
+                    <div class="ulasan-form-title"><?= $ulasanSaya ? 'Edit Ulasan Kamu' : 'Tulis Ulasan' ?></div>
+
+                    <?php if ($ulasanPesan): ?>
+                    <div class="ulasan-form-msg <?= $ulasanTipe ?>"><?= htmlspecialchars($ulasanPesan) ?></div>
+                    <?php endif; ?>
+
+                    <form method="POST" action="detail_ebook.php?id=<?= $bookId ?>#tab-ulasan" id="formUlasan">
+                        <input type="hidden" name="aksi_ulasan" value="simpan">
+                        <div class="rating-picker" id="ratingPicker">
+                            <?php for ($i = 5; $i >= 1; $i--): ?>
+                            <input type="radio" name="rating" id="bintang<?= $i ?>" value="<?= $i ?>"
+                                <?= (!empty($ulasanSaya) && (int) $ulasanSaya['rating'] === $i) ? 'checked' : '' ?>>
+                            <label for="bintang<?= $i ?>">★</label>
+                            <?php endfor; ?>
+                        </div>
+                        <textarea name="komentar" class="ulasan-textarea"
+                                  placeholder="Bagikan pendapatmu tentang buku ini..."><?= htmlspecialchars($ulasanSaya['komentar'] ?? '') ?></textarea>
+                        <div class="ulasan-form-actions">
+                            <button type="submit" class="btn-ulasan-save">
+                                <?= icon('check-circle', 14) ?> <?= $ulasanSaya ? 'Simpan Perubahan' : 'Kirim Ulasan' ?>
+                            </button>
+                        </div>
+                    </form>
+                    <?php if ($ulasanSaya): ?>
+                    <form method="POST" action="detail_ebook.php?id=<?= $bookId ?>#tab-ulasan" style="margin-top:8px;"
+                          onsubmit="return confirm('Yakin ingin menghapus ulasan kamu?')">
+                        <input type="hidden" name="aksi_ulasan" value="hapus">
+                        <button type="submit" class="btn-ulasan-hapus">Hapus Ulasan Saya</button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+
                 <?php if (empty($ulasanList)): ?>
-                    <p class="empty-ulasan">Belum ada ulasan untuk eBook ini.</p>
+                    <p class="empty-ulasan">Belum ada ulasan untuk eBook ini. Jadilah yang pertama!</p>
                 <?php else: ?>
-                    <?php foreach ($ulasanList as $u): ?>
+                    <?php foreach ($ulasanList as $u):
+                        $mine = ((int) $u['user_id'] === $uid);
+                    ?>
                     <div class="ulasan-item">
                         <div class="ulasan-avatar"><?= strtoupper(substr($u['nama_lengkap'], 0, 1)) ?></div>
                         <div class="ulasan-body">
                             <div class="ulasan-head">
                                 <strong><?= htmlspecialchars($u['nama_lengkap']) ?></strong>
+                                <?php if ($mine): ?><span class="mine-tag">Ulasan Anda</span><?php endif; ?>
                                 <span class="ulasan-rating-label">Memberikan rating</span>
                                 <span class="ulasan-stars">
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
@@ -661,14 +795,23 @@ function coverPath($cover) {
     }
 
     // ── FITUR BARU: Switch Tab Deskripsi / Detail / Ulasan ──
+    function activateTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+        var btn = document.querySelector('.tab-btn[data-tab="' + tabName + '"]');
+        var panel = document.getElementById('tab-' + tabName);
+        if (btn) btn.classList.add('active');
+        if (panel) panel.classList.add('active');
+    }
+
     document.querySelectorAll('.tab-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
-            document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
-            btn.classList.add('active');
-            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-        });
+        btn.addEventListener('click', function () { activateTab(btn.dataset.tab); });
     });
+
+    // Buka tab Ulasan otomatis kalau URL mengandung #tab-ulasan (setelah submit form ulasan)
+    if (window.location.hash === '#tab-ulasan') {
+        activateTab('ulasan');
+    }
 </script>
 </body>
-</html>
+</html> 
