@@ -196,8 +196,12 @@ function getKatMeta($nama, $katMeta, $defaultMeta, $colorPalette, $idx) {
         </div>
         <div class="topbar-right">
             <div class="user-chip">
-                <div class="chip-ava">
-                    <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
+                <div class="chip-ava" style="overflow:hidden;">
+                    <?php if (!empty($user['foto_profil']) && is_file(__DIR__ . '/../uploads/profil/' . $user['foto_profil'])): ?>
+                        <img src="../uploads/profil/<?= htmlspecialchars($user['foto_profil']) ?>?v=<?= time() ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
+                    <?php else: ?>
+                        <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
+                    <?php endif; ?>
                 </div>
                 <div>
                     <div class="chip-name"><?= htmlspecialchars(explode(' ', $user['nama_lengkap'])[0]) ?></div>
