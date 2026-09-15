@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                        VALUES ('$nama_lengkap','$email','$username','$hashed','$no_telepon','$alamat','anggota')";
             if (mysqli_query($conn, $insert)) {
                 $success = 'Registrasi berhasil! Silakan login.';
+                $_POST = []; // Kosongkan data form supaya field kembali kosong setelah berhasil
             } else {
                 $error = 'Terjadi kesalahan: ' . mysqli_error($conn);
             }
