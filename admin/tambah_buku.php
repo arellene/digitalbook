@@ -24,7 +24,89 @@ $pesan = '';
 $pesan_type = '';
 $form_data = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// ─── FITUR BARU (FAREL): Bulk Input - import banyak buku sekaligus dari CSV ──
+$bulkPesan   = '';
+$bulkTipe    = '';
+$bulkDetail  = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['aksi'] ?? '') === 'bulk_import') {
+
+    if (empty($_FILES['csv_file']['name'])) {
+        $bulkPesan = 'Silakan pilih file CSV terlebih dahulu.';
+        $bulkTipe  = 'danger';
+    } else {
+        $ext = strtolower(pathinfo($_FILES['csv_file']['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'csv') {
+            $bulkPesan = 'File harus berformat .csv';
+            $bulkTipe  = 'danger';
+        } else {
+            $handle = fopen($_FILES['csv_file']['tmp_name'], 'r');
+            if ($handle === false) {
+                $bulkPesan = 'Gagal membaca file CSV.';
+                $bulkTipe  = 'danger';
+            } else {
+                $header = fgetcsv($handle); // baris pertama = nama kolom, dilewati
+                $baris_ke = 1;
+                $sukses = 0;
+                $gagal  = 0;
+
+                while (($row = fgetcsv($handle)) !== false) {
+                    $baris_ke++;
+                    // Lewati baris kosong
+                    if (count(array_filter($row, fn($v) => trim((string)$v) !== '')) === 0) continue;
+
+                    $judul_b    = trim($row[0] ?? '');
+                    $penulis_b  = trim($row[1] ?? '');
+                    $penerbit_b = trim($row[2] ?? '');
+                    $tahun_b    = (int) ($row[3] ?? date('Y'));
+                    $kategori_b = trim($row[4] ?? '');
+                    $deskripsi_b = trim($row[5] ?? '');
+
+                    if ($judul_b === '' || $penulis_b === '' || $kategori_b === '') {
+                        $gagal++;
+                        $bulkDetail[] = "Baris $baris_ke: dilewati — Judul, Penulis, dan Kategori wajib diisi.";
+                        continue;
+                    }
+                    if (!in_array($kategori_b, $kat_list, true)) {
+                        $gagal++;
+                        $bulkDetail[] = "Baris $baris_ke: dilewati — kategori \"$kategori_b\" tidak ditemukan di daftar kategori.";
+                        continue;
+                    }
+
+                    $judul_e     = mysqli_real_escape_string($conn, $judul_b);
+                    $penulis_e   = mysqli_real_escape_string($conn, $penulis_b);
+                    $penerbit_e  = mysqli_real_escape_string($conn, $penerbit_b);
+                    $kategori_e  = mysqli_real_escape_string($conn, $kategori_b);
+                    $deskripsi_e = mysqli_real_escape_string($conn, $deskripsi_b);
+                    if ($tahun_b <= 0) $tahun_b = (int) date('Y');
+
+                    $ok = mysqli_query($conn, "INSERT INTO buku
+                        (judul, penulis, penerbit, tahun, kategori, deskripsi, cover_emoji, total_baca, created_at)
+                        VALUES
+                        ('$judul_e','$penulis_e','$penerbit_e',$tahun_b,'$kategori_e','$deskripsi_e','📚',0,NOW())");
+
+                    if ($ok) {
+                        $sukses++;
+                    } else {
+                        $gagal++;
+                        $bulkDetail[] = "Baris $baris_ke: gagal disimpan ke database.";
+                    }
+                }
+                fclose($handle);
+
+                if ($sukses > 0) {
+                    $bulkPesan = "$sukses buku berhasil diimpor" . ($gagal > 0 ? ", $gagal baris dilewati." : '.');
+                    $bulkTipe  = $gagal > 0 ? 'warning' : 'success';
+                } else {
+                    $bulkPesan = 'Tidak ada buku yang berhasil diimpor. Periksa kembali format file CSV kamu.';
+                    $bulkTipe  = 'danger';
+                }
+            }
+        }
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['aksi'] ?? 'single') === 'single') {
     $judul       = mysqli_real_escape_string($conn, trim($_POST['judul'] ?? ''));
     $penulis     = mysqli_real_escape_string($conn, trim($_POST['penulis'] ?? ''));
     $penerbit    = mysqli_real_escape_string($conn, trim($_POST['penerbit'] ?? ''));
@@ -139,7 +221,21 @@ $active_menu = 'tambah_buku';
       </div>
     </div>
 
-    <!-- ALERT -->
+    <!-- FITUR BARU (FAREL): Tab Mode Input -->
+    <div class="mode-tabs" style="display:flex;gap:10px;margin-bottom:20px;">
+      <button type="button" class="mode-tab-btn active" data-mode="single"
+        style="padding:10px 18px;border-radius:10px;border:1px solid var(--border, #2a2f3d);
+               background:var(--accent, #5a9cf0);color:#fff;font-weight:600;font-size:13.5px;cursor:pointer;">
+        ➕ Satu Buku
+      </button>
+      <button type="button" class="mode-tab-btn" data-mode="bulk"
+        style="padding:10px 18px;border-radius:10px;border:1px solid var(--border, #2a2f3d);
+               background:transparent;color:var(--text2, #9aa4b8);font-weight:600;font-size:13.5px;cursor:pointer;">
+        📑 Bulk Input (CSV)
+      </button>
+    </div>
+
+    <!-- ALERT (single) -->
     <?php if ($pesan): ?>
     <div class="alert alert-<?php echo $pesan_type; ?>" id="alertMsg">
       <?php echo $pesan_type === 'success' ? '✅' : '❌'; ?>
@@ -147,7 +243,61 @@ $active_menu = 'tambah_buku';
     </div>
     <?php endif; ?>
 
+    <!-- FITUR BARU (FAREL): Alert Bulk Import -->
+    <?php if ($bulkPesan): ?>
+    <div class="alert alert-<?php echo $bulkTipe; ?>" id="alertBulkMsg">
+      <?php echo $bulkTipe === 'success' ? '✅' : ($bulkTipe === 'warning' ? '⚠️' : '❌'); ?>
+      <?php echo htmlspecialchars($bulkPesan); ?>
+      <?php if (!empty($bulkDetail)): ?>
+        <ul style="margin:10px 0 0 20px;font-size:12.5px;">
+          <?php foreach (array_slice($bulkDetail, 0, 15) as $d): ?>
+            <li><?php echo htmlspecialchars($d); ?></li>
+          <?php endforeach; ?>
+          <?php if (count($bulkDetail) > 15): ?>
+            <li>...dan <?php echo count($bulkDetail) - 15; ?> baris lainnya.</li>
+          <?php endif; ?>
+        </ul>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- FITUR BARU (FAREL): Panel Bulk Input CSV -->
+    <div class="mode-panel" id="panelBulk" style="display:none;">
+      <div class="card form-card">
+        <div class="card-title">📑 Bulk Input — Import Banyak Buku Sekaligus</div>
+        <p class="form-hint" style="margin-bottom:16px;">
+          Unggah file CSV berisi daftar buku. Format kolom: <strong>judul, penulis, penerbit, tahun, kategori, deskripsi</strong>.
+          Cover buku akan otomatis memakai ikon 📚 default (bisa diganti manual lewat halaman Kelola Buku).
+        </p>
+
+        <a href="#" id="downloadTemplate" class="btn-ghost" style="display:inline-flex;margin-bottom:20px;">
+          ⬇️ Download Template CSV
+        </a>
+
+        <form method="POST" enctype="multipart/form-data" id="formBulkImport">
+          <input type="hidden" name="aksi" value="bulk_import">
+          <div class="form-group">
+            <label for="csv_file">File CSV <span class="req">*</span></label>
+            <div class="file-upload-area" id="csvUploadArea">
+              <input type="file" id="csv_file" name="csv_file" accept=".csv" class="file-input-hidden" required>
+              <div class="file-upload-content" id="csvUploadContent">
+                <span class="file-upload-icon">📁</span>
+                <span class="file-upload-text">Klik atau seret file CSV ke sini</span>
+                <span class="file-upload-hint">Format .csv · Baris pertama = nama kolom</span>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary btn-full" id="btnBulkSubmit" style="margin-top:14px;">
+            📥 Import Buku dari CSV
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="mode-panel" id="panelSingle">
+
     <form method="POST" enctype="multipart/form-data" class="form-layout" id="formTambahBuku" novalidate>
+      <input type="hidden" name="aksi" value="single">
 
       <!-- KOLOM KIRI: Form utama -->
       <div class="form-main">
@@ -287,6 +437,8 @@ $active_menu = 'tambah_buku';
       <!-- END KOLOM KANAN -->
 
     </form>
+    </div>
+    <!-- END panelSingle -->
 
   </div>
   <!-- END CONTENT AREA -->
@@ -300,6 +452,86 @@ $active_menu = 'tambah_buku';
 </div>
 
 <script>
+// ─── FITUR BARU (FAREL): Toggle Tab Mode Single / Bulk ───────────────────────
+const tabBtns     = document.querySelectorAll('.mode-tab-btn');
+const panelSingle = document.getElementById('panelSingle');
+const panelBulk   = document.getElementById('panelBulk');
+
+function setMode(mode) {
+  tabBtns.forEach(b => {
+    const active = b.dataset.mode === mode;
+    b.classList.toggle('active', active);
+    b.style.background = active ? 'var(--accent, #5a9cf0)' : 'transparent';
+    b.style.color = active ? '#fff' : 'var(--text2, #9aa4b8)';
+  });
+  panelSingle.style.display = mode === 'single' ? '' : 'none';
+  panelBulk.style.display   = mode === 'bulk' ? '' : 'none';
+}
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => setMode(btn.dataset.mode));
+});
+
+<?php if ($bulkPesan): ?>
+setMode('bulk'); // Buka tab Bulk otomatis kalau baru saja submit CSV
+<?php else: ?>
+setMode('single');
+<?php endif; ?>
+
+// ─── FITUR BARU (FAREL): Upload CSV & Preview Nama File ──────────────────────
+const csvInput   = document.getElementById('csv_file');
+const csvArea    = document.getElementById('csvUploadArea');
+const csvContent = document.getElementById('csvUploadContent');
+
+if (csvArea && csvInput) {
+  csvArea.addEventListener('click', () => csvInput.click());
+  csvArea.addEventListener('dragover', e => { e.preventDefault(); csvArea.classList.add('drag-over'); });
+  csvArea.addEventListener('dragleave', () => csvArea.classList.remove('drag-over'));
+  csvArea.addEventListener('drop', e => {
+    e.preventDefault();
+    csvArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) { csvInput.files = e.dataTransfer.files; showCsvName(file); }
+  });
+  csvInput.addEventListener('change', () => {
+    if (csvInput.files[0]) showCsvName(csvInput.files[0]);
+  });
+}
+
+function showCsvName(file) {
+  csvContent.innerHTML = `<span class="file-upload-icon">✅</span>
+    <span class="file-upload-text">${file.name}</span>
+    <span class="file-upload-hint">${(file.size/1024).toFixed(1)} KB</span>`;
+}
+
+const bulkForm = document.getElementById('formBulkImport');
+if (bulkForm) {
+  bulkForm.addEventListener('submit', function () {
+    const btn = document.getElementById('btnBulkSubmit');
+    btn.disabled = true;
+    btn.textContent = '⏳ Mengimpor...';
+  });
+}
+
+// ─── FITUR BARU (FAREL): Download Template CSV ───────────────────────────────
+document.getElementById('downloadTemplate').addEventListener('click', function (e) {
+  e.preventDefault();
+  const rows = [
+    ['judul', 'penulis', 'penerbit', 'tahun', 'kategori', 'deskripsi'],
+    ['Contoh Judul Buku', 'Nama Penulis', 'Nama Penerbit', '2024', 'Novel', 'Sinopsis singkat buku ini...'],
+  ];
+  const csvContentStr = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\ufeff' + csvContentStr], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'template_bulk_buku.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
 // ─── Sidebar Toggle ───────────────────────────────────────────────────────────
 const sidebarToggle = document.getElementById('sidebarToggle');
 const sidebar       = document.getElementById('sidebar');
