@@ -233,11 +233,11 @@ $active_menu = 'dashboard';
               <?php foreach ($populer_list as $i => $b): ?>
               <div class="popular-item">
                 <div class="pop-rank"><?php echo $i + 1; ?></div>
-                <div class="pop-emoji">
+                <div class="pop-emoji" style="width:48px;height:64px;flex-shrink:0;overflow:hidden;border-radius:6px;display:flex;align-items:center;justify-content:center;">
                   <?php if (!empty($b['cover_img'])): ?>
                     <img src="../<?php echo htmlspecialchars($b['cover_img']); ?>"
                          alt="<?php echo htmlspecialchars($b['judul']); ?>"
-                         style="width:100%;height:100%;object-fit:cover;border-radius:6px;display:block;">
+                         style="width:100%;height:100%;object-fit:cover;object-position:center;border-radius:6px;display:block;">
                   <?php else: ?>
                     <?php echo htmlspecialchars($b['cover_emoji'] ?? '📗'); ?>
                   <?php endif; ?>
