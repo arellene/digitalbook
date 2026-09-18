@@ -45,22 +45,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['aksi'] ?? '') === 'bulk_im
                 $bulkPesan = 'Gagal membaca file CSV.';
                 $bulkTipe  = 'danger';
             } else {
+                $pdf_temp_dir = '../uploads/bulk_pdf_temp/';
+                $pdf_final_dir = '../uploads/pdf/';
+                if (!is_dir($pdf_temp_dir)) mkdir($pdf_temp_dir, 0755, true);
+                if (!is_dir($pdf_final_dir)) mkdir($pdf_final_dir, 0755, true);
+
+                // ── FITUR BARU: Upload ZIP berisi banyak PDF, otomatis di-extract ──
+                $zipInfo = '';
+                if (!empty($_FILES['zip_pdf']['name'])) {
+                    $zipExt = strtolower(pathinfo($_FILES['zip_pdf']['name'], PATHINFO_EXTENSION));
+                    if ($zipExt !== 'zip') {
+                        $zipInfo = 'File yang diunggah untuk PDF harus berformat .zip — dilewati.';
+                    } elseif (!class_exists('ZipArchive')) {
+                        $zipInfo = 'Ekstensi PHP ZipArchive tidak aktif di server ini, ZIP tidak bisa diproses.';
+                    } else {
+                        $zip = new ZipArchive();
+                        if ($zip->open($_FILES['zip_pdf']['tmp_name']) === true) {
+                            $jmlPdfDiekstrak = 0;
+                            for ($i = 0; $i < $zip->numFiles; $i++) {
+                                $namaDalamZip = $zip->getNameIndex($i);
+                                // Lewati folder & file selain .pdf, hindari path traversal
+                                $namaBersih = basename($namaDalamZip);
+                                if ($namaBersih === '' || substr($namaDalamZip, -1) === '/') continue;
+                                if (strtolower(pathinfo($namaBersih, PATHINFO_EXTENSION)) !== 'pdf') continue;
+
+                                $isiFile = $zip->getFromIndex($i);
+                                if ($isiFile !== false) {
+                                    file_put_contents($pdf_temp_dir . $namaBersih, $isiFile);
+                                    $jmlPdfDiekstrak++;
+                                }
+                            }
+                            $zip->close();
+                            $zipInfo = "$jmlPdfDiekstrak file PDF dari ZIP berhasil diekstrak.";
+                        } else {
+                            $zipInfo = 'Gagal membuka file ZIP — pastikan file tidak rusak.';
+                        }
+                    }
+                }
+
                 $header = fgetcsv($handle); // baris pertama = nama kolom, dilewati
                 $baris_ke = 1;
                 $sukses = 0;
                 $gagal  = 0;
+                $tanpaPdf = 0;
 
                 while (($row = fgetcsv($handle)) !== false) {
                     $baris_ke++;
                     // Lewati baris kosong
                     if (count(array_filter($row, fn($v) => trim((string)$v) !== '')) === 0) continue;
 
-                    $judul_b    = trim($row[0] ?? '');
-                    $penulis_b  = trim($row[1] ?? '');
-                    $penerbit_b = trim($row[2] ?? '');
-                    $tahun_b    = (int) ($row[3] ?? date('Y'));
-                    $kategori_b = trim($row[4] ?? '');
+                    $judul_b     = trim($row[0] ?? '');
+                    $penulis_b   = trim($row[1] ?? '');
+                    $penerbit_b  = trim($row[2] ?? '');
+                    $tahun_b     = (int) ($row[3] ?? date('Y'));
+                    $kategori_b  = trim($row[4] ?? '');
                     $deskripsi_b = trim($row[5] ?? '');
+                    $pdf_nama_b  = trim($row[6] ?? ''); // FITUR BARU: kolom opsional nama file PDF
 
                     if ($judul_b === '' || $penulis_b === '' || $kategori_b === '') {
                         $gagal++;
@@ -73,17 +113,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['aksi'] ?? '') === 'bulk_im
                         continue;
                     }
 
-                    $judul_e     = mysqli_real_escape_string($conn, $judul_b);
-                    $penulis_e   = mysqli_real_escape_string($conn, $penulis_b);
-                    $penerbit_e  = mysqli_real_escape_string($conn, $penerbit_b);
-                    $kategori_e  = mysqli_real_escape_string($conn, $kategori_b);
-                    $deskripsi_e = mysqli_real_escape_string($conn, $deskripsi_b);
+                    // ── FITUR BARU: Cari & pasangkan file PDF dari folder sementara ──
+                    $file_pdf_final = '';
+                    if ($pdf_nama_b !== '') {
+                        $sumber_pdf = $pdf_temp_dir . $pdf_nama_b;
+                        if (is_file($sumber_pdf) && strtolower(pathinfo($pdf_nama_b, PATHINFO_EXTENSION)) === 'pdf') {
+                            $nama_baru = 'buku_' . time() . '_' . uniqid() . '.pdf';
+                            if (copy($sumber_pdf, $pdf_final_dir . $nama_baru)) {
+                                $file_pdf_final = 'uploads/pdf/' . $nama_baru;
+                            } else {
+                                $bulkDetail[] = "Baris $baris_ke: PDF \"$pdf_nama_b\" gagal disalin, buku tetap disimpan tanpa PDF.";
+                                $tanpaPdf++;
+                            }
+                        } else {
+                            $bulkDetail[] = "Baris $baris_ke: PDF \"$pdf_nama_b\" tidak ditemukan di folder uploads/bulk_pdf_temp/, buku disimpan tanpa PDF.";
+                            $tanpaPdf++;
+                        }
+                    } else {
+                        $tanpaPdf++;
+                    }
+
+                    $judul_e       = mysqli_real_escape_string($conn, $judul_b);
+                    $penulis_e     = mysqli_real_escape_string($conn, $penulis_b);
+                    $penerbit_e    = mysqli_real_escape_string($conn, $penerbit_b);
+                    $kategori_e    = mysqli_real_escape_string($conn, $kategori_b);
+                    $deskripsi_e   = mysqli_real_escape_string($conn, $deskripsi_b);
+                    $file_pdf_e    = mysqli_real_escape_string($conn, $file_pdf_final);
                     if ($tahun_b <= 0) $tahun_b = (int) date('Y');
 
                     $ok = mysqli_query($conn, "INSERT INTO buku
-                        (judul, penulis, penerbit, tahun, kategori, deskripsi, cover_emoji, total_baca, created_at)
+                        (judul, penulis, penerbit, tahun, kategori, deskripsi, cover_emoji, file_pdf, total_baca, created_at)
                         VALUES
-                        ('$judul_e','$penulis_e','$penerbit_e',$tahun_b,'$kategori_e','$deskripsi_e','📚',0,NOW())");
+                        ('$judul_e','$penulis_e','$penerbit_e',$tahun_b,'$kategori_e','$deskripsi_e','📚','$file_pdf_e',0,NOW())");
 
                     if ($ok) {
                         $sukses++;
@@ -95,10 +156,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['aksi'] ?? '') === 'bulk_im
                 fclose($handle);
 
                 if ($sukses > 0) {
-                    $bulkPesan = "$sukses buku berhasil diimpor" . ($gagal > 0 ? ", $gagal baris dilewati." : '.');
-                    $bulkTipe  = $gagal > 0 ? 'warning' : 'success';
+                    $bulkPesan = "$sukses buku berhasil diimpor";
+                    $extra = [];
+                    if ($gagal > 0) $extra[] = "$gagal baris dilewati";
+                    if ($tanpaPdf > 0) $extra[] = "$tanpaPdf buku tersimpan tanpa file PDF";
+                    if ($extra) $bulkPesan .= ' (' . implode(', ', $extra) . ').';
+                    else $bulkPesan .= '.';
+                    if ($zipInfo) $bulkPesan .= ' ' . $zipInfo;
+                    $bulkTipe  = ($gagal > 0 || $tanpaPdf > 0) ? 'warning' : 'success';
                 } else {
                     $bulkPesan = 'Tidak ada buku yang berhasil diimpor. Periksa kembali format file CSV kamu.';
+                    if ($zipInfo) $bulkPesan .= ' ' . $zipInfo;
                     $bulkTipe  = 'danger';
                 }
             }
@@ -266,9 +334,16 @@ $active_menu = 'tambah_buku';
       <div class="card form-card">
         <div class="card-title">📑 Bulk Input — Import Banyak Buku Sekaligus</div>
         <p class="form-hint" style="margin-bottom:16px;">
-          Unggah file CSV berisi daftar buku. Format kolom: <strong>judul, penulis, penerbit, tahun, kategori, deskripsi</strong>.
-          Cover buku akan otomatis memakai ikon 📚 default (bisa diganti manual lewat halaman Kelola Buku).
+          Unggah file CSV berisi daftar buku. Format kolom: <strong>judul, penulis, penerbit, tahun, kategori, deskripsi, file_pdf</strong>.
         </p>
+        <div class="alert alert-info" style="margin-bottom:16px;font-size:12.5px;line-height:1.7;">
+          ℹ️ <strong>Soal file PDF (opsional):</strong> CSV tidak bisa membawa file PDF secara langsung. Kalau mau sekalian pasang PDF, pilih salah satu cara:
+          <ol style="margin:8px 0 0 18px;">
+            <li><strong>Upload ZIP langsung di sini</strong> — kumpulkan semua PDF ke 1 file .zip, upload lewat kolom di bawah, sistem otomatis mengekstraknya</li>
+            <li><strong>Atau taruh manual di server</strong> — masukkan file PDF ke folder <code>uploads/bulk_pdf_temp/</code></li>
+          </ol>
+          Lalu isi kolom <strong>file_pdf</strong> di CSV dengan nama file PDF-nya persis (contoh: <code>bumi-manusia.pdf</code>). Kalau kolom ini dikosongkan, buku tetap berhasil ditambahkan tanpa PDF — bisa diupload belakangan lewat halaman Kelola Buku.
+        </div>
 
         <a href="#" id="downloadTemplate" class="btn-ghost" style="display:inline-flex;margin-bottom:20px;">
           ⬇️ Download Template CSV
@@ -287,6 +362,19 @@ $active_menu = 'tambah_buku';
               </div>
             </div>
           </div>
+
+          <div class="form-group" style="margin-top:16px;">
+            <label for="zip_pdf">File ZIP Berisi PDF <span style="color:var(--text3, #6b7280);font-weight:400;">(opsional)</span></label>
+            <div class="file-upload-area" id="zipUploadArea">
+              <input type="file" id="zip_pdf" name="zip_pdf" accept=".zip" class="file-input-hidden">
+              <div class="file-upload-content" id="zipUploadContent">
+                <span class="file-upload-icon">🗜️</span>
+                <span class="file-upload-text">Klik atau seret file ZIP ke sini</span>
+                <span class="file-upload-hint">Berisi kumpulan file PDF, nama file harus cocok dengan kolom file_pdf di CSV</span>
+              </div>
+            </div>
+          </div>
+
           <button type="submit" class="btn-primary btn-full" id="btnBulkSubmit" style="margin-top:14px;">
             📥 Import Buku dari CSV
           </button>
@@ -504,6 +592,32 @@ function showCsvName(file) {
     <span class="file-upload-hint">${(file.size/1024).toFixed(1)} KB</span>`;
 }
 
+// ─── FITUR BARU (FAREL): Upload ZIP PDF & Preview Nama File ──────────────────
+const zipInput   = document.getElementById('zip_pdf');
+const zipArea    = document.getElementById('zipUploadArea');
+const zipContent = document.getElementById('zipUploadContent');
+
+if (zipArea && zipInput) {
+  zipArea.addEventListener('click', () => zipInput.click());
+  zipArea.addEventListener('dragover', e => { e.preventDefault(); zipArea.classList.add('drag-over'); });
+  zipArea.addEventListener('dragleave', () => zipArea.classList.remove('drag-over'));
+  zipArea.addEventListener('drop', e => {
+    e.preventDefault();
+    zipArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) { zipInput.files = e.dataTransfer.files; showZipName(file); }
+  });
+  zipInput.addEventListener('change', () => {
+    if (zipInput.files[0]) showZipName(zipInput.files[0]);
+  });
+}
+
+function showZipName(file) {
+  zipContent.innerHTML = `<span class="file-upload-icon">✅</span>
+    <span class="file-upload-text">${file.name}</span>
+    <span class="file-upload-hint">${(file.size/1024/1024).toFixed(2)} MB</span>`;
+}
+
 const bulkForm = document.getElementById('formBulkImport');
 if (bulkForm) {
   bulkForm.addEventListener('submit', function () {
@@ -517,8 +631,8 @@ if (bulkForm) {
 document.getElementById('downloadTemplate').addEventListener('click', function (e) {
   e.preventDefault();
   const rows = [
-    ['judul', 'penulis', 'penerbit', 'tahun', 'kategori', 'deskripsi'],
-    ['Contoh Judul Buku', 'Nama Penulis', 'Nama Penerbit', '2024', 'Novel', 'Sinopsis singkat buku ini...'],
+    ['judul', 'penulis', 'penerbit', 'tahun', 'kategori', 'deskripsi', 'file_pdf'],
+    ['Contoh Judul Buku', 'Nama Penulis', 'Nama Penerbit', '2024', 'Novel', 'Sinopsis singkat buku ini...', 'contoh-judul-buku.pdf'],
   ];
   const csvContentStr = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
   const blob = new Blob(['\ufeff' + csvContentStr], { type: 'text/csv;charset=utf-8;' });
