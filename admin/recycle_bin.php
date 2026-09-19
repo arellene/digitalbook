@@ -11,6 +11,8 @@ if ($_SESSION['role'] !== 'admin') {
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
+
 $pesan = '';
 $pesan_type = '';
 
