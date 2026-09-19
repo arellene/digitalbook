@@ -90,9 +90,6 @@ if (!$isGuest && $_sbUid > 0 && isset($conn) && $conn instanceof mysqli) {
 
         <?php if (!$isGuest): ?>
         <div class="nav-label">AKUN</div>
-            <a href="../anggota/profil.php" class="nav-link <?= ($active_menu == 'profil') ? 'active' : '' ?>">
-                <span><?= icon('user', 16) ?></span> Profil Saya
-            </a>
             <a href="../anggota/notifikasi.php" class="nav-link <?= ($active_menu == 'notifikasi') ? 'active' : '' ?>" style="position:relative;">
                 <span><?= icon('bell', 16) ?></span> Notifikasi
                 <?php if ($_sidebarUnread > 0): ?>
