@@ -46,32 +46,6 @@
       <?php if ($m === 'katalog'): ?><span class="sidebar-item-indicator"></span><?php endif; ?>
     </a>
 
-    <div class="sidebar-section-label">Transaksi</div>
-
-    <span class="sidebar-item sidebar-item-locked" onclick="showLoginToast()">
-      <span class="sidebar-item-icon"><i class="fa-solid fa-book-reader"></i></span>
-      <span class="sidebar-item-label">Sedang Dibaca</span>
-      <span class="sidebar-item-lock"><i class="fa-solid fa-lock"></i></span>
-    </span>
-
-    <span class="sidebar-item sidebar-item-locked" onclick="showLoginToast()">
-      <span class="sidebar-item-icon"><i class="fa-solid fa-heart"></i></span>
-      <span class="sidebar-item-label">Wishlist</span>
-      <span class="sidebar-item-lock"><i class="fa-solid fa-lock"></i></span>
-    </span>
-
-    <span class="sidebar-item sidebar-item-locked" onclick="showLoginToast()">
-      <span class="sidebar-item-icon"><i class="fa-solid fa-layer-group"></i></span>
-      <span class="sidebar-item-label">Koleksi Saya</span>
-      <span class="sidebar-item-lock"><i class="fa-solid fa-lock"></i></span>
-    </span>
-
-    <span class="sidebar-item sidebar-item-locked" onclick="showLoginToast()">
-      <span class="sidebar-item-icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
-      <span class="sidebar-item-label">Riwayat Baca</span>
-      <span class="sidebar-item-lock"><i class="fa-solid fa-lock"></i></span>
-    </span>
-
   </nav>
 
   <div class="sidebar-divider"></div>
