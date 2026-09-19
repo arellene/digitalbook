@@ -181,21 +181,8 @@ function icon($name, $size = 16, $style = '') {
             <span><?= icon('tag', 16) ?></span> Kategori
         </a>
 
+        <?php if (!$isGuest): ?>
         <div class="nav-label">AKTIVITAS</div>
-        <?php if ($isGuest): ?>
-            <a href="#" class="nav-link locked" onclick="showToast(event)">
-                <span><?= icon('layers', 16) ?></span> Koleksi Saya
-                <span class="lock"><?= icon('lock', 12) ?></span>
-            </a>
-            <a href="#" class="nav-link locked" onclick="showToast(event)">
-                <span><?= icon('history', 16) ?></span> Riwayat Baca
-                <span class="lock"><?= icon('lock', 12) ?></span>
-            </a>
-            <a href="#" class="nav-link locked" onclick="showToast(event)">
-                <span><?= icon('star', 16) ?></span> Wishlist
-                <span class="lock"><?= icon('lock', 12) ?></span>
-            </a>
-        <?php else: ?>
             <a href="koleksi.php" class="nav-link <?= ($active_menu == 'koleksi') ? 'active' : '' ?>">
                 <span><?= icon('layers', 16) ?></span> Koleksi Saya
             </a>
