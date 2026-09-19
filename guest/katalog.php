@@ -226,6 +226,9 @@ $covers = [
             <a href="../auth/register.php" class="btn-logout register">
                 <?= icon('user-plus', 16) ?> Daftar Sekarang
             </a>
+            <a href="../auth/logout.php" class="btn-logout" style="margin-top:8px;">
+                <?= icon('sign-out', 16) ?> Keluar
+            </a>
         <?php else: ?>
             <a href="../auth/logout.php" class="btn-logout">
                 <?= icon('sign-out', 16) ?> Keluar
