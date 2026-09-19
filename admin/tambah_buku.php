@@ -366,17 +366,9 @@ $active_menu = 'tambah_buku';
         <p class="form-hint" style="margin-bottom:16px;">
           Unggah file CSV berisi daftar buku. Format kolom: <strong>judul, penulis, penerbit, tahun, kategori, deskripsi, file_pdf, cover_img</strong>.
         </p>
-        <div class="alert alert-info" style="margin-bottom:16px;font-size:12.5px;line-height:1.7;">
-          ℹ️ <strong>Soal file PDF & cover (opsional):</strong> CSV tidak bisa membawa file secara langsung. Kalau mau sekalian pasang PDF dan/atau gambar cover, pilih salah satu cara:
-          <ol style="margin:8px 0 0 18px;">
-            <li><strong>Upload ZIP langsung di sini</strong> — kumpulkan semua PDF dan gambar cover (.jpg/.png) ke 1 file .zip, upload lewat kolom di bawah, sistem otomatis mengekstrak & memilah keduanya</li>
-            <li><strong>Atau taruh manual di server</strong> — PDF ke folder <code>uploads/bulk_pdf_temp/</code>, gambar cover ke folder <code>uploads/bulk_cover_temp/</code></li>
-          </ol>
-          Lalu isi kolom <strong>file_pdf</strong> dan <strong>cover_img</strong> di CSV dengan nama file-nya persis (contoh: <code>bumi-manusia.pdf</code> dan <code>bumi-manusia.jpg</code>). Kolom mana pun boleh dikosongkan — buku tetap berhasil ditambahkan, cover kosong otomatis pakai ikon 📚 default.
-        </div>
 
         <a href="#" id="downloadTemplate" class="btn-ghost" style="display:inline-flex;margin-bottom:20px;">
-          ⬇️ Download Template CSV
+          ⬇️ Contoh CSV / Template
         </a>
 
         <form method="POST" enctype="multipart/form-data" id="formBulkImport">
