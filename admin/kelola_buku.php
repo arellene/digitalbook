@@ -19,17 +19,11 @@ $user_id = $_SESSION['user_id'];
 $pesan = '';
 $pesan_type = '';
 
-// HAPUS
+// HAPUS (FITUR BARU - RIZKY: soft delete, masuk Recycle Bin dulu)
 if (isset($_GET['hapus']) && is_numeric($_GET['hapus'])) {
     $hid = (int)$_GET['hapus'];
-    // Hapus file PDF jika ada
-    $row_del = mysqli_fetch_assoc(mysqli_query($conn, "SELECT file_pdf, cover_img FROM buku WHERE id = $hid"));
-    if ($row_del) {
-        if (!empty($row_del['file_pdf']) && file_exists('../' . $row_del['file_pdf'])) unlink('../' . $row_del['file_pdf']);
-        if (!empty($row_del['cover_img']) && file_exists('../' . $row_del['cover_img'])) unlink('../' . $row_del['cover_img']);
-    }
-    mysqli_query($conn, "DELETE FROM buku WHERE id = $hid");
-    $pesan = 'Buku berhasil dihapus.';
+    mysqli_query($conn, "UPDATE buku SET deleted_at = NOW() WHERE id = $hid");
+    $pesan = 'Buku dipindahkan ke Recycle Bin.';
     $pesan_type = 'danger';
 }
 
@@ -70,7 +64,7 @@ $page      = max(1, (int)($_GET['page'] ?? 1));
 $per_page  = 10;
 $offset    = ($page - 1) * $per_page;
 
-$where = "WHERE 1=1";
+$where = "WHERE b.deleted_at IS NULL";
 if ($search)     $where .= " AND (b.judul LIKE '%$search%' OR b.penulis LIKE '%$search%')";
 if ($filter_kat) $where .= " AND b.kategori = '$filter_kat'";
 
@@ -89,11 +83,14 @@ $result_buku = mysqli_query($conn, "
 ");
 
 // ─── KPI ─────────────────────────────────────────────────────────────────────
-$total_buku   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM buku"))['c'];
-$buku_bulan   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM buku WHERE MONTH(created_at)=MONTH(CURDATE()) AND YEAR(created_at)=YEAR(CURDATE())"))['c'];
-$total_baca   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COALESCE(SUM(total_baca),0) AS c FROM buku"))['c'];
+$total_buku   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM buku WHERE deleted_at IS NULL"))['c'];
+$buku_bulan   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM buku WHERE deleted_at IS NULL AND MONTH(created_at)=MONTH(CURDATE()) AND YEAR(created_at)=YEAR(CURDATE())"))['c'];
+$total_baca   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COALESCE(SUM(total_baca),0) AS c FROM buku WHERE deleted_at IS NULL"))['c'];
 $rating_avg   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT ROUND(AVG(rating),1) AS r FROM ulasan"))['r'] ?? 0;
-$total_kat    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT kategori) AS c FROM buku"))['c'];
+$total_kat    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT kategori) AS c FROM buku WHERE deleted_at IS NULL"))['c'];
+
+// ─── FITUR BARU (RIZKY): Hitung jumlah buku di Recycle Bin ───────────────────
+$total_sampah = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM buku WHERE deleted_at IS NOT NULL"))['c'];
 
 // ─── Kategori list untuk filter & form ───────────────────────────────────────
 $result_kat_list = mysqli_query($conn, "SELECT nama_kategori FROM kategori ORDER BY nama_kategori ASC");
@@ -212,10 +209,22 @@ $active_menu = 'buku';
           <?php endif; ?>
         </form>
 
-        <!-- Tambah -->
-        <a href="tambah_buku.php" class="btn-primary">
-          ➕ Tambah Buku
-        </a>
+        <!-- Tambah & Recycle Bin -->
+        <div style="display:flex;gap:10px;">
+          <a href="tambah_buku.php" class="btn-primary">
+            ➕ Tambah Buku
+          </a>
+          <!-- FITUR BARU (RIZKY): Tombol ke Recycle Bin -->
+          <a href="recycle_bin.php" class="btn-ghost" style="position:relative;">
+            🗑️ Recycle Bin
+            <?php if ($total_sampah > 0): ?>
+            <span style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;
+                         font-size:10px;font-weight:700;border-radius:999px;padding:1px 6px;">
+              <?php echo $total_sampah; ?>
+            </span>
+            <?php endif; ?>
+          </a>
+        </div>
 
       </div>
     </div>
@@ -317,7 +326,7 @@ $active_menu = 'buku';
                   </button>
                   <a href="kelola_buku.php?hapus=<?php echo $row['id']; ?>"
                      class="btn-icon del"
-                     onclick="return confirm('Hapus buku \'<?php echo addslashes($row['judul']); ?>\'? Aksi ini tidak bisa dibatalkan.')">
+                     onclick="return confirm('Pindahkan buku \'<?php echo addslashes($row['judul']); ?>\' ke Recycle Bin?')">
                     🗑
                   </a>
                 </div>
