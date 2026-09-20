@@ -367,7 +367,11 @@ $active_menu = 'katalog'; // sorot Katalog di sidebar
             </div>
         </div>
         <div class="topbar-right">
+            <?php if (!$isGuest): ?>
+            <a href="profil.php" class="user-chip" style="text-decoration:none;color:inherit;">
+            <?php else: ?>
             <div class="user-chip">
+            <?php endif; ?>
                 <div class="chip-ava">
                     <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
                 </div>
@@ -375,7 +379,11 @@ $active_menu = 'katalog'; // sorot Katalog di sidebar
                     <div class="chip-name"><?= htmlspecialchars(explode(' ', $user['nama_lengkap'])[0]) ?></div>
                     <div class="chip-role"><?= $isGuest ? 'Tamu' : 'Member' ?></div>
                 </div>
+            <?php if (!$isGuest): ?>
+            </a>
+            <?php else: ?>
             </div>
+            <?php endif; ?>
         </div>
     </div><!-- /topbar -->
 
