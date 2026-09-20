@@ -346,46 +346,16 @@ $active_menu = 'katalog'; // sorot Katalog di sidebar
 </head>
 <body>
 
-<?php require_once '../includes/anggota/sidebar.php'; ?>
+<?php
+    $active_menu       = 'katalog';
+    $topbar_title      = 'Ulasan Buku';
+    $topbar_breadcrumb = 'Katalog / ' . mb_strimwidth($buku['judul'], 0, 28, '…');
+    $topbar_search     = true;
+    require_once '../includes/anggota/topnav.php';
+?>
 
 <!-- ══ MAIN ════════════════════════════════════════════════════ -->
-<div class="main">
-
-    <!-- ── TOPBAR ── -->
-    <div class="topbar">
-        <div class="topbar-left">
-            <button class="menu-btn" onclick="toggleSidebar()">
-                <?= icon('bars', 20) ?>
-            </button>
-            <div>
-                <div class="topbar-title">Ulasan Buku</div>
-                <div class="topbar-breadcrumb">
-                    Pojok Baca /
-                    <a href="katalog_ebook.php" style="color:var(--muted)">Katalog</a> /
-                    <span><?= htmlspecialchars(mb_strimwidth($buku['judul'], 0, 28, '…')) ?></span>
-                </div>
-            </div>
-        </div>
-        <div class="topbar-right">
-            <?php if (!$isGuest): ?>
-            <a href="profil.php" class="user-chip" style="text-decoration:none;color:inherit;">
-            <?php else: ?>
-            <div class="user-chip">
-            <?php endif; ?>
-                <div class="chip-ava">
-                    <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
-                </div>
-                <div>
-                    <div class="chip-name"><?= htmlspecialchars(explode(' ', $user['nama_lengkap'])[0]) ?></div>
-                    <div class="chip-role"><?= $isGuest ? 'Tamu' : 'Member' ?></div>
-                </div>
-            <?php if (!$isGuest): ?>
-            </a>
-            <?php else: ?>
-            </div>
-            <?php endif; ?>
-        </div>
-    </div><!-- /topbar -->
+<div class="main" style="margin-left:0 !important;width:100%;">
 
     <!-- ── CONTENT ── -->
     <div class="content">

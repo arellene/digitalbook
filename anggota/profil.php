@@ -295,38 +295,15 @@ $tglDaftar    = !empty($user['tgl_daftar'])
 </head>
 <body>
 
-<?php require_once '../includes/anggota/sidebar.php'; ?>
+<?php
+    $active_menu       = 'profil';
+    $topbar_title      = 'Profil Saya';
+    $topbar_breadcrumb = 'Profil Saya';
+    $topbar_search     = false;
+    require_once '../includes/anggota/topnav.php';
+?>
 
-<div class="main">
-
-    <!-- ── TOPBAR ── -->
-    <div class="topbar">
-        <div class="topbar-left">
-            <button class="menu-btn" onclick="toggleSidebar()">
-                <?= icon('bars', 20) ?>
-            </button>
-            <div>
-                <div class="topbar-title">Profil Saya</div>
-                <div class="topbar-breadcrumb">Pojok Baca / <span>Profil Saya</span></div>
-            </div>
-        </div>
-        <div class="topbar-right">
-            <span class="user-chip" style="cursor:default;">
-                <div class="chip-ava" style="overflow:hidden;">
-                    <?php if (!empty($user['foto_profil']) && is_file(__DIR__ . '/../uploads/profil/' . $user['foto_profil'])): ?>
-                        <img src="../uploads/profil/<?= htmlspecialchars($user['foto_profil']) ?>?v=<?= time() ?>"
-                             alt="" style="width:100%;height:100%;object-fit:cover;">
-                    <?php else: ?>
-                        <?= $namaInisial ?>
-                    <?php endif; ?>
-                </div>
-                <div>
-                    <div class="chip-name"><?= htmlspecialchars(explode(' ', $user['nama_lengkap'])[0]) ?></div>
-                    <div class="chip-role">Member</div>
-                </div>
-            </span>
-        </div>
-    </div>
+<div class="main" style="margin-left:0 !important;width:100%;">
 
     <!-- ── CONTENT ── -->
     <div class="content">

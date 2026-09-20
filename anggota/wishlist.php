@@ -175,39 +175,15 @@ function icon($name, $size = 16, $style = '') {
 </head>
 <body>
 
-<?php require_once '../includes/anggota/sidebar.php'; ?>
+<?php
+    $active_menu       = 'wishlist';
+    $topbar_title      = 'Wishlist Saya';
+    $topbar_breadcrumb = 'Wishlist';
+    $topbar_search     = true;
+    require_once '../includes/anggota/topnav.php';
+?>
 
-<div class="main">
-
-    <!-- TOPBAR -->
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="menu-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
-                <?= icon('bars', 22) ?>
-            </button>
-            <div>
-                <div class="topbar-title">Wishlist Saya</div>
-                <div class="topbar-breadcrumb">
-                    <span>Pojok Baca</span> &rsaquo; Wishlist
-                </div>
-            </div>
-        </div>
-        <div class="topbar-right">
-            <a href="profil.php" class="user-chip" style="text-decoration:none;color:inherit;">
-                <div class="chip-ava" style="overflow:hidden;">
-                    <?php if (!empty($user['foto_profil']) && is_file(__DIR__ . '/../uploads/profil/' . $user['foto_profil'])): ?>
-                        <img src="../uploads/profil/<?= htmlspecialchars($user['foto_profil']) ?>?v=<?= time() ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
-                    <?php else: ?>
-                        <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
-                    <?php endif; ?>
-                </div>
-                <div>
-                    <div class="chip-name"><?= htmlspecialchars($user['nama_lengkap']) ?></div>
-                    <div class="chip-role">Member</div>
-                </div>
-            </a>
-        </div>
-    </header>
+<div class="main" style="margin-left:0 !important;width:100%;">
 
     <!-- CONTENT -->
     <div class="content">
