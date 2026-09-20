@@ -311,7 +311,7 @@ $tglDaftar    = !empty($user['tgl_daftar'])
             </div>
         </div>
         <div class="topbar-right">
-            <div class="user-chip">
+            <span class="user-chip" style="cursor:default;">
                 <div class="chip-ava" style="overflow:hidden;">
                     <?php if (!empty($user['foto_profil']) && is_file(__DIR__ . '/../uploads/profil/' . $user['foto_profil'])): ?>
                         <img src="../uploads/profil/<?= htmlspecialchars($user['foto_profil']) ?>?v=<?= time() ?>"
@@ -324,7 +324,7 @@ $tglDaftar    = !empty($user['tgl_daftar'])
                     <div class="chip-name"><?= htmlspecialchars(explode(' ', $user['nama_lengkap'])[0]) ?></div>
                     <div class="chip-role">Member</div>
                 </div>
-            </div>
+            </span>
         </div>
     </div>
 
