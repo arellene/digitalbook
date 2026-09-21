@@ -131,124 +131,19 @@ function icon($name, $size = 16, $style = '') {
     <style>
         /* SVG icon alignment */
         svg { vertical-align: middle; flex-shrink: 0; }
-        .nav-link { display:flex; align-items:center; gap:10px; }
-        .nav-link > span:first-child { display:inline-flex; align-items:center; width:20px; justify-content:center; flex-shrink:0; }
-        .nav-link .lock { display:inline-flex; align-items:center; margin-left:auto; opacity:0.5; }
     </style>
 </head>
 <body>
 
-<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
-
-<!-- ── SIDEBAR ── -->
-<aside class="sidebar" id="sidebar">
-
-    <!-- BRAND -->
-    <div class="brand">
-        <div class="brand-logo"><?= icon('book-open', 20) ?></div>
-        <div>
-            <div class="brand-name">Pojok Baca</div>
-            <div class="brand-sub">Portal Guest</div>
-        </div>
-    </div>
-
-    <!-- USER -->
-    <div class="sidebar-user">
-        <div class="user-ava">
-            <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
-        </div>
-        <div>
-            <div class="user-name"><?= htmlspecialchars($user['nama_lengkap']) ?></div>
-            <span class="user-badge <?= $isGuest ? 'guest' : 'member' ?>">
-                <?= $isGuest ? icon('lock', 11).' Tamu' : icon('check-circle', 11).' Member' ?>
-            </span>
-        </div>
-    </div>
-
-    <!-- NAV -->
-    <nav>
-
-        <div class="nav-label">MAIN</div>
-        <a href="dashboard.php" class="nav-link <?= ($active_menu == 'dashboard') ? 'active' : '' ?>">
-            <span><?= icon('house', 16) ?></span> Beranda
-        </a>
-
-        <div class="nav-label">KOLEKSI</div>
-        <a href="katalog.php" class="nav-link <?= ($active_menu == 'katalog') ? 'active' : '' ?>">
-            <span><?= icon('book-open', 16) ?></span> Katalog eBook
-        </a>
-        <a href="kategori.php" class="nav-link <?= ($active_menu == 'kategori') ? 'active' : '' ?>">
-            <span><?= icon('tag', 16) ?></span> Kategori
-        </a>
-
-        <?php if (!$isGuest): ?>
-        <div class="nav-label">AKTIVITAS</div>
-            <a href="koleksi.php" class="nav-link <?= ($active_menu == 'koleksi') ? 'active' : '' ?>">
-                <span><?= icon('layers', 16) ?></span> Koleksi Saya
-            </a>
-            <a href="riwayat.php" class="nav-link <?= ($active_menu == 'riwayat') ? 'active' : '' ?>">
-                <span><?= icon('history', 16) ?></span> Riwayat Baca
-            </a>
-            <a href="wishlist.php" class="nav-link <?= ($active_menu == 'wishlist') ? 'active' : '' ?>">
-                <span><?= icon('star', 16) ?></span> Wishlist
-            </a>
-        <?php endif; ?>
-
-        <?php if (!$isGuest): ?>
-        <div class="nav-label">AKUN</div>
-            <a href="profil.php" class="nav-link <?= ($active_menu == 'profil') ? 'active' : '' ?>">
-                <span><?= icon('user', 16) ?></span> Profil Saya
-            </a>
-            <a href="notifikasi.php" class="nav-link <?= ($active_menu == 'notifikasi') ? 'active' : '' ?>">
-                <span><?= icon('bell', 16) ?></span> Notifikasi
-            </a>
-        <?php endif; ?>
-
-    </nav>
-
-    <!-- FOOTER -->
-    <div class="sidebar-footer">
-        <?php if ($isGuest): ?>
-            <a href="../auth/register.php" class="btn-logout register">
-                <?= icon('user-plus', 16) ?> Daftar Sekarang
-            </a>
-            <a href="../auth/logout.php" class="btn-logout" style="margin-top:8px;">
-                <?= icon('sign-out', 16) ?> Keluar
-            </a>
-        <?php else: ?>
-            <a href="../auth/logout.php" class="btn-logout">
-                <?= icon('sign-out', 16) ?> Keluar
-            </a>
-        <?php endif; ?>
-    </div>
-
-</aside>
+<!-- ── NAVBAR ATAS (pengganti sidebar) ── -->
+<?php
+$topbar_title      = 'Beranda';
+$topbar_breadcrumb = 'Beranda';
+include __DIR__ . '/../includes/guest/topnav.php';
+?>
 
 <!-- ── MAIN ── -->
 <div class="main">
-    <!-- TOPBAR -->
-    <div class="topbar">
-        <div class="topbar-left">
-            <button class="menu-btn" onclick="toggleSidebar()">
-                <?= icon('bars', 20) ?>
-            </button>
-            <div>
-                <div class="topbar-title">Beranda</div>
-                <div class="topbar-breadcrumb">Pojok Baca / <span>Beranda</span></div>
-            </div>
-        </div>
-        <div class="topbar-right">
-            <div class="user-chip">
-                <div class="chip-ava">
-                    <?= strtoupper(substr($user['nama_lengkap'], 0, 1)) ?>
-                </div>
-                <div>
-                    <div class="chip-name"><?= htmlspecialchars(explode(' ', $user['nama_lengkap'])[0]) ?></div>
-                    <div class="chip-role"><?= $isGuest ? 'Tamu' : 'Member' ?></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- CONTENT -->
     <div class="content">
@@ -413,17 +308,6 @@ function icon($name, $size = 16, $style = '') {
 </div>
 
 <script>
-    function toggleSidebar() {
-        const s = document.getElementById('sidebar');
-        const o = document.getElementById('overlay');
-        s.classList.toggle('open');
-        o.classList.toggle('show');
-    }
-    function closeSidebar() {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('overlay').classList.remove('show');
-    }
-
     let toastTimer;
     function showToast(e) {
         e && e.preventDefault();
