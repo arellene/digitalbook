@@ -116,6 +116,13 @@ $active_menu = 'buku';
   <link rel="stylesheet" href="../assets/css/admin/dashboard.css">
   <link rel="stylesheet" href="../assets/css/admin/kelola_buku.css">
   <link rel="stylesheet" href="../assets/css/admin/sidebar.css">
+  <style>
+    /* FITUR BARU: Scrollbar horizontal terlihat jelas di tabel Kelola Buku */
+    .table-wrap::-webkit-scrollbar { height: 10px; }
+    .table-wrap::-webkit-scrollbar-track { background: #1a1f2e; border-radius: 10px; }
+    .table-wrap::-webkit-scrollbar-thumb { background: #5a6b8c; border-radius: 10px; }
+    .table-wrap::-webkit-scrollbar-thumb:hover { background: #7a8bb0; }
+  </style>
 </head>
 <body>
 
@@ -246,8 +253,8 @@ $active_menu = 'buku';
       </div>
       <?php endif; ?>
 
-      <div class="table-wrap">
-        <table class="data-table">
+      <div class="table-wrap" style="overflow-x:auto;scrollbar-color:#5a6b8c #1a1f2e;scrollbar-width:thin;">
+        <table class="data-table" style="min-width:920px;width:100%;">
           <thead>
             <tr>
               <th>#</th>
