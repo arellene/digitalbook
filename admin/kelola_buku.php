@@ -273,13 +273,13 @@ $active_menu = 'buku';
             <tr>
               <td style="color:var(--text3)"><?php echo $no++; ?></td>
               <td>
-                <div class="book-cover-cell">
+                <div class="book-cover-cell" style="width:40px;height:54px;flex-shrink:0;overflow:hidden;border-radius:4px;display:flex;align-items:center;justify-content:center;">
                   <?php if (!empty($row['cover_img']) && file_exists('../' . $row['cover_img'])): ?>
                     <img src="../<?php echo htmlspecialchars($row['cover_img']); ?>"
                          alt="Cover <?php echo htmlspecialchars($row['judul']); ?>"
-                         style="width:40px;height:54px;object-fit:cover;border-radius:4px;display:block;">
+                         style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;">
                   <?php else: ?>
-                    <div style="width:40px;height:54px;border-radius:4px;background:#1e2533;display:flex;align-items:center;justify-content:center;">
+                    <div style="width:100%;height:100%;background:#1e2533;display:flex;align-items:center;justify-content:center;">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#4b5563"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
                     </div>
                   <?php endif; ?>
